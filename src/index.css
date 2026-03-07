@@ -1,0 +1,206 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --surface-1: #fcfcfb;
+  --surface-2: #f9f9f7;
+  --surface-card: #ffffff;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --gridline: #e1e0d9;
+  --baseline: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.1);
+  --series-contrib: #2e5090;
+  --series-growth: #0d8a4a;
+  --series-accent: #1499c4;
+  /* The inputs panel's own color. Deliberately not one of the series colors: it marks the one
+     region of the page you can edit, so it shouldn't read as a data series. Checked at 5.4:1 on
+     white, so the active control labels that wear it stay legible. */
+  --plan-accent: #0e7490;
+  --success-text: #006300;
+  /* Status is a fixed, reserved scale — same hex in both themes, never cycled with the categorical series. */
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+  --bg-grid-line: rgba(255, 255, 255, 0.8);
+  /* Extended categorical set for the 10-slot holdings pie. Beyond ~3 slots a pie's colorblind-safety
+     can't be fully validated (see palette all-pairs limits) — these are a best-effort spread, not
+     a guarantee, which is why every slice also carries a direct label + legend as backup. */
+  --chart-4: #c2622d;
+  --chart-5: #b23a3a;
+  --chart-6: #6b4a9e;
+  --chart-7: #8a4a1f;
+  --chart-8: #b23a7a;
+  --chart-9: #7a8a1f;
+  --chart-10: #4a5570;
+  --shadow-card: 0 1px 2px rgba(11, 11, 11, 0.04), 0 8px 24px -12px rgba(11, 11, 11, 0.12);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-1: #0f1729;
+  --surface-2: #0a0f1c;
+  --surface-card: #141d33;
+  --text-primary: #ffffff;
+  --text-secondary: #b8c2d9;
+  --text-muted: #7c8aa8;
+  --gridline: #26304d;
+  --baseline: #3d4a6b;
+  --border: rgba(255, 255, 255, 0.1);
+  --series-contrib: #5b8ad6;
+  --series-growth: #2fae73;
+  --series-accent: #157a9e;
+  --plan-accent: #2ab0d4;
+  --success-text: #0ca30c;
+  --bg-grid-line: rgba(255, 255, 255, 0.06);
+  --chart-4: #e08a52;
+  --chart-5: #d9645f;
+  --chart-6: #9a7fc9;
+  --chart-7: #c17d3f;
+  --chart-8: #d968a3;
+  --chart-9: #a8bb3f;
+  --chart-10: #7986a8;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.2), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --surface-1: #0f1729;
+    --surface-2: #0a0f1c;
+    --surface-card: #141d33;
+    --text-primary: #ffffff;
+    --text-secondary: #b8c2d9;
+    --text-muted: #7c8aa8;
+    --gridline: #26304d;
+    --baseline: #3d4a6b;
+    --border: rgba(255, 255, 255, 0.1);
+    --series-contrib: #5b8ad6;
+    --series-growth: #2fae73;
+    --series-accent: #157a9e;
+    --plan-accent: #2ab0d4;
+    --success-text: #0ca30c;
+    --bg-grid-line: rgba(255, 255, 255, 0.06);
+    --chart-4: #e08a52;
+    --chart-5: #d9645f;
+    --chart-6: #9a7fc9;
+    --chart-7: #c17d3f;
+    --chart-8: #d968a3;
+    --chart-9: #a8bb3f;
+    --chart-10: #7986a8;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.2), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--series-contrib);
+  color: white;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hides the native up/down spinner so a compact number input doesn't clash with custom stepper buttons. */
+.no-spinner {
+  appearance: textfield;
+}
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.bg-grid {
+  background-color: var(--surface-2);
+  background-image:
+    linear-gradient(var(--bg-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bg-grid-line) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Landscape gives charts meaningfully more width to work with than portrait Letter/A4 — this must
+   be a top-level @page rule (not nested inside @media print) per the CSS spec. */
+@page {
+  size: landscape;
+  margin: 12mm;
+}
+
+/* Printing (including "Save as PDF") always uses the light palette, regardless of the viewer's
+   theme — white paper reads better with a light report than with the app's dark navy chrome, and
+   it saves ink. This block is placed last and repeats the exact selectors used above so it wins
+   the cascade for `@media print` specifically, without touching on-screen theming. */
+@media print {
+  :root,
+  :root[data-theme="dark"] {
+    color-scheme: light;
+    --surface-1: #fcfcfb;
+    --surface-2: #ffffff;
+    --surface-card: #ffffff;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --gridline: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11, 11, 11, 0.15);
+    --series-contrib: #2e5090;
+    --series-growth: #0d8a4a;
+    --series-accent: #1499c4;
+    --success-text: #006300;
+    --chart-4: #c2622d;
+    --chart-5: #b23a3a;
+    --chart-6: #6b4a9e;
+    --chart-7: #8a4a1f;
+    --chart-8: #b23a7a;
+    --chart-9: #7a8a1f;
+    --chart-10: #4a5570;
+    --shadow-card: none;
+  }
+
+  * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .bg-grid {
+    background-image: none;
+  }
+
+  body {
+    background: #ffffff;
+  }
+
+  /* The app's max-w-7xl container is sized for a wide desktop screen — on a printed page that's
+     often wider than the actual paper, so charts (measured by Recharts' ResponsiveContainer
+     against their DOM parent) can end up wider than what fits and get clipped at the page edge.
+     Letting content fill the real print width, and forcing every chart's measured container to
+     recompute against it, is what keeps charts from running off the page. */
+  main {
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  .recharts-responsive-container {
+    max-width: 100% !important;
+  }
+}
