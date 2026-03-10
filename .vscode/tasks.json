@@ -1,0 +1,92 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev",
+      "type": "npm",
+      "script": "dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "vite",
+        "pattern": {
+          "regexp": "^(ERROR.*)$",
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "VITE v",
+          "endsPattern": "ready in"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "dashboard"
+      },
+      "detail": "Starts the Vite dev server at http://localhost:5183 with built-in return assumptions (no live data)."
+    },
+    {
+      "label": "netlify dev",
+      "type": "shell",
+      "command": "npx netlify dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "netlify",
+        "pattern": {
+          "regexp": "^(ERROR.*)$",
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Netlify Dev",
+          "endsPattern": "Server now ready on"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "dashboard"
+      },
+      "detail": "Starts Vite and the live-data function together at http://localhost:8888."
+    },
+    {
+      "label": "build",
+      "type": "npm",
+      "script": "build",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$tsc"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "detail": "Type-checks the project and builds the production bundle into dist/."
+    },
+    {
+      "label": "lint",
+      "type": "npm",
+      "script": "lint",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "detail": "Runs oxlint over the project."
+    },
+    {
+      "label": "preview",
+      "type": "npm",
+      "script": "preview",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "detail": "Serves the production build locally to sanity-check it before deploying."
+    }
+  ]
+}

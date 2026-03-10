@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Launch Chrome against dev server",
+      "url": "http://localhost:5183",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "dev",
+      "sourceMaps": true
+    },
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Launch Chrome against Netlify dev (live data)",
+      "url": "http://localhost:8888",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "netlify dev",
+      "sourceMaps": true
+    },
+    {
+      "type": "chrome",
+      "request": "attach",
+      "name": "Attach to Chrome",
+      "port": 9222,
+      "url": "http://localhost:*",
+      "webRoot": "${workspaceFolder}"
+    }
+  ]
+}
