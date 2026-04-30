@@ -1,5 +1,5 @@
-/** Triggers a browser download of the given text content as a file. */
-function downloadBlob(filename: string, blob: Blob) {
+/** Triggers a browser download of the given blob as a file. */
+export function downloadBlob(filename: string, blob: Blob) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -7,7 +7,8 @@ function downloadBlob(filename: string, blob: Blob) {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  // Revoking right after click() can cancel the download in some browsers, so give it a moment.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function csvEscape(value: unknown): string {

@@ -1,3 +1,5 @@
+import { downloadBlob } from "./download";
+
 export interface ExcelSheet {
   name: string;
   rows: Record<string, unknown>[];
@@ -33,12 +35,5 @@ export async function downloadWorkbook(filename: string, sheets: ExcelSheet[]) {
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename.endsWith(".xlsx") ? filename : `${filename}.xlsx`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  downloadBlob(filename.endsWith(".xlsx") ? filename : `${filename}.xlsx`, blob);
 }
