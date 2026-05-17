@@ -142,7 +142,8 @@ function jsonResponse(body: unknown, status = 200): Response {
     status,
     headers: {
       "content-type": "application/json",
-      "cache-control": "public, max-age=300",
+      // Only successful lookups are worth caching; a cached 400 would keep failing after the fix.
+      "cache-control": status === 200 ? "public, max-age=300" : "no-store",
     },
   });
 }
