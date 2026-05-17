@@ -497,6 +497,17 @@ function App() {
                 </span>
                 .
               </p>
+              <p className="mt-1 text-base sm:text-lg" style={{ color: "var(--text-muted)" }}>
+                Which is{" "}
+                <span className="font-semibold" style={{ color: "var(--text-secondary)" }}>
+                  <AnimatedNumber
+                    value={final.balance * SAFE_WITHDRAWAL_RATE}
+                    formatter={(v) => currencyFormatter.format(v)}
+                    pulseOnChange
+                  />
+                </span>{" "}
+                annually at a {(SAFE_WITHDRAWAL_RATE * 100).toFixed(0)}% safe withdrawal rate.
+              </p>
               <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
                 Based on a {(annualReturn * 100).toFixed(1)}% average annual return, historically. Actual results will vary.
               </p>
