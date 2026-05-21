@@ -10,7 +10,44 @@
   publish = "dist"
   functions = "netlify/functions"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# There is no client side router, so every real page is served from index.html at "/". A catch all
+# rewrite would answer any made up URL with the app and a 200, which search engines treat as a soft
+# 404. Without one, Netlify serves public/404.html with a real 404 instead. Add the rewrite back if
+# this ever grows client side routes.
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+
+# Vite fingerprints every filename under /assets, so these can be cached indefinitely.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# The HTML entry point is not fingerprinted, so it has to be revalidated or visitors keep getting
+# an old build that points at assets which no longer exist.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/sitemap.xml"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/robots.txt"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+# Social platforms cache share images hard, but a day gives a reasonable window to replace one.
+[[headers]]
+  for = "/og-image.png"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
