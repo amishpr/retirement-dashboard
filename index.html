@@ -2,13 +2,116 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Interactive retirement investing dashboard — project ETF growth over time." />
-    <title>Retirement Investing Dashboard</title>
+
+    <title>Retirement Investing Dashboard | Free ETF Growth Calculator</title>
+    <meta
+      name="description"
+      content="Model how your ETF investments could grow toward retirement. Project compound growth, blend funds, compare risk and volatility, and estimate retirement income."
+    />
+    <link rel="canonical" href="https://amishpr-retirement-dashboard.netlify.app/" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+    <meta name="author" content="Amish Prajapati" />
+
+    <!-- The browser chrome follows the app's own light and dark surfaces. -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fcfcfb" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1729" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- PNG fallback for crawlers and older browsers that skip SVG favicons. Google's search
+         results favicon has to be a square multiple of 48px, which is why this is 96x96. -->
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Retirement Investing Dashboard" />
+    <meta property="og:title" content="Retirement Investing Dashboard | Free ETF Growth Calculator" />
+    <meta
+      property="og:description"
+      content="Model how your ETF investments could grow toward retirement. Project compound growth, blend funds, compare risk and volatility, and estimate retirement income."
+    />
+    <meta property="og:url" content="https://amishpr-retirement-dashboard.netlify.app/" />
+    <meta property="og:image" content="https://amishpr-retirement-dashboard.netlify.app/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Retirement Investing Dashboard, showing a compounding growth curve"
+    />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Retirement Investing Dashboard | Free ETF Growth Calculator" />
+    <meta
+      name="twitter:description"
+      content="Model how your ETF investments could grow toward retirement. Project compound growth, blend funds, compare risk and volatility, and estimate retirement income."
+    />
+    <meta name="twitter:image" content="https://amishpr-retirement-dashboard.netlify.app/og-image.png" />
+    <meta
+      name="twitter:image:alt"
+      content="Retirement Investing Dashboard, showing a compounding growth curve"
+    />
+
+    <!-- Structured data. Everything here is also stated on the page itself, which is what Google
+         asks for — the markup describes the tool, it doesn't claim anything extra. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Retirement Investing Dashboard",
+        "url": "https://amishpr-retirement-dashboard.netlify.app/",
+        "description": "An interactive dashboard for projecting how ETF and stock investments could grow toward retirement, with charts for growth, retirement income, risk, holdings, and sector exposure.",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript",
+        "inLanguage": "en",
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Amish Prajapati",
+          "url": "https://github.com/amishpr"
+        },
+        "featureList": [
+          "Compound growth projections with weekly, biweekly, monthly, or yearly contributions",
+          "Ten preset ETFs plus any custom ticker",
+          "Blend multiple funds into one portfolio with adjustable weights",
+          "Goal mode that solves for the contribution needed to reach a target income",
+          "Risk and volatility comparison across funds",
+          "Holdings, sector, and geography breakdowns",
+          "CSV and Excel export, plus a printable PDF report"
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <h1>Retirement Investing Dashboard</h1>
+      <p>
+        An interactive dashboard for projecting how ETF and stock investments could grow toward
+        retirement. Pick a preset fund, type in any ticker, or blend several funds into a portfolio,
+        then set your age, current savings, and contribution schedule to project your balance
+        forward. Charts cover growth over time, optimistic and conservative scenarios, estimated
+        retirement income, risk and volatility, top holdings, sector weightings, and domestic versus
+        international exposure. A goal mode works backward from the retirement income you want and
+        solves for the contribution needed to get there.
+      </p>
+      <p>
+        This dashboard needs JavaScript to run its projections. Please enable JavaScript and reload
+        the page.
+      </p>
+      <p>
+        Made by <a href="https://github.com/amishpr">Amish Prajapati</a>. The source is on
+        <a href="https://github.com/amishpr/retirement-dashboard">GitHub</a>.
+      </p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

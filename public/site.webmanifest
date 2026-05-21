@@ -1,0 +1,26 @@
+{
+  "name": "Retirement Investing Dashboard",
+  "short_name": "Retirement",
+  "description": "Model how your ETF investments could grow toward retirement, with charts for growth, income, and risk.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f1729",
+  "theme_color": "#2e5090",
+  "lang": "en",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

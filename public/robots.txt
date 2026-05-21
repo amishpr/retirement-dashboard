@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# The serverless proxy returns JSON quotes, not pages worth indexing.
+Disallow: /.netlify/
+
+Sitemap: https://amishpr-retirement-dashboard.netlify.app/sitemap.xml
