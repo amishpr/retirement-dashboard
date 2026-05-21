@@ -19,6 +19,7 @@ import { SectorChart } from "./components/SectorChart";
 import { GeographyDonut } from "./components/GeographyDonut";
 import { FundOverviewCard, type FundOverviewData } from "./components/FundOverviewCard";
 import { DownloadReportButton } from "./components/DownloadReportButton";
+import { GithubRepoButton } from "./components/GithubRepoButton";
 import { PrintPageButton } from "./components/PrintPageButton";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { ETF_OPTIONS, getAllFunds, DEFAULT_ETF_TICKER } from "./data/etfs";
@@ -460,6 +461,7 @@ function App() {
           <div className="flex items-center gap-2">
             <PrintPageButton />
             <DownloadReportButton filename="retirement-plan-report.xlsx" getSheets={getReportSheets} />
+            <GithubRepoButton />
             <ThemeToggle />
           </div>
         </div>
