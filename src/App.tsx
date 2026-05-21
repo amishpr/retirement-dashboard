@@ -606,11 +606,26 @@ function App() {
 
             <CompareChart input={input} funds={compareFunds} highlightTicker={compareHighlight} />
 
-            <p className="px-1 text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
-              Average annual returns are approximate, long-run historical figures for each fund and are provided for
-              educational purposes only. They are not a guarantee or prediction of future performance. This tool does
-              not account for fees, taxes, dividend reinvestment timing, or inflation, and is not financial advice.
-            </p>
+            <div className="px-1 text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
+              <p>
+                Average annual returns are approximate, long-run historical figures for each fund and are provided for
+                educational purposes only. They are not a guarantee or prediction of future performance. This tool does
+                not account for fees, taxes, dividend reinvestment timing, or inflation, and is not financial advice.
+              </p>
+              <p className="mt-2">
+                This dashboard was made by{" "}
+                <a
+                  href="https://github.com/amishpr"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium underline-offset-2 hover:underline"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  Amish Prajapati
+                </a>
+                .
+              </p>
+            </div>
           </div>
         </div>
       </main>
