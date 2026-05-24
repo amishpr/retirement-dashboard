@@ -131,6 +131,112 @@ body {
   margin: 0;
 }
 
+/* Interaction feedback for every clickable/editable control. Components set their colors inline
+   (active-vs-idle tints, accent borders), and inline styles beat any stylesheet rule — so instead of
+   swapping those colors, hover/press are layered on with `box-shadow`, which nothing sets inline:
+   one inset shadow tints the whole face, a second draws a 1px ring just inside the existing border
+   to firm up its edge. Both are mixed from `currentColor`, so each control highlights in its own
+   text/accent color and reads correctly in either theme.
+
+   `outline` is deliberately reserved for :focus-visible and never used for hover. Its initial color
+   is `currentcolor`, so animating outline-color across a state that also flips outline-style from
+   `none` to `solid` flashes the full-strength text color for a frame before settling — box-shadow
+   starts from `none` and interpolates out of transparent, with no such flash. For the same reason
+   outline-color is kept out of the transition list below. */
+button:not(:disabled),
+a[href],
+select,
+[role="button"],
+input[type="range"] {
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:not(:disabled),
+a[href],
+select,
+[role="button"],
+input:not([type="range"]),
+div:has(> input:not([type="range"])) {
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 100ms ease;
+}
+
+/* Hover only where a real pointer exists, so touch screens don't leave a control stuck highlighted
+   after a tap. The :has() guard keeps a card from lighting up while its nested remove (×) button is
+   the thing actually under the pointer. */
+@media (hover: hover) {
+  button:not(:disabled):hover:not(:has([role="button"]:hover)),
+  a[href][class~="border"]:hover,
+  [role="button"]:hover {
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, currentColor 28%, transparent),
+      inset 0 0 0 999px color-mix(in srgb, currentColor 7%, transparent);
+  }
+
+  a[href]:not([class~="border"]):hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  select:hover,
+  input[class~="border"]:hover {
+    border-color: color-mix(in srgb, var(--plan-accent) 55%, var(--border));
+  }
+
+  /* The inputs sit inside a bordered wrapper (with a "$" prefix), so highlight the wrapper. */
+  div:has(> input:not([type="range"]):hover):not(:has(> button)) {
+    border-color: color-mix(in srgb, var(--plan-accent) 55%, var(--border)) !important;
+  }
+}
+
+button:not(:disabled):active,
+a[href][class~="border"]:active,
+[role="button"]:active {
+  transform: scale(0.98);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, currentColor 38%, transparent),
+    inset 0 0 0 999px color-mix(in srgb, currentColor 14%, transparent);
+}
+
+/* Keyboard focus: a clear ring for tabbing, without showing on mouse clicks for buttons. Text
+   fields and dropdowns also get it on click, since that's how you know where you're typing. */
+button:focus-visible,
+a[href]:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible,
+input[type="range"]:focus-visible {
+  outline: 2px solid var(--plan-accent) !important;
+  outline-offset: 2px !important;
+}
+
+select:focus,
+input[class~="border"]:focus {
+  border-color: var(--plan-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--plan-accent) 22%, transparent);
+}
+
+div:has(> input:not([type="range"]):focus):not(:has(> button)) {
+  border-color: var(--plan-accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--plan-accent) 22%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled):active,
+  a[href][class~="border"]:active,
+  [role="button"]:active {
+    transform: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
+
 .bg-grid {
   background-color: var(--surface-2);
   background-image:
