@@ -441,7 +441,7 @@ function App() {
         className="border-b"
         style={{ borderColor: "var(--border)", background: "var(--surface-1)" }}
       >
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-4 sm:px-6">
           <div className="flex items-center gap-2.5">
             <span
               className="flex h-9 w-9 items-center justify-center rounded-xl"
