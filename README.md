@@ -114,6 +114,11 @@ The `.vscode/` folder has task and debug configs for this project.
   opens Chrome with breakpoints working in the TypeScript source. "Launch Chrome against Netlify
   dev (live data)" does the same through `netlify dev` on port 8888. "Attach to Chrome" connects
   to a Chrome window that was started with remote debugging on port 9222.
+- The same three configs exist for Firefox. They need the "Debugger for Firefox" extension
+  (`firefox-devtools.vscode-firefox-debug`), which `.vscode/extensions.json` recommends, so VS Code
+  offers to install it the first time you open the project. "Attach to Firefox" expects Firefox to
+  have been started with `--start-debugger-server 6000` and `devtools.debugger.remote-enabled` set
+  to true.
 
 ## Live market data
 

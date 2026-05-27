@@ -1,0 +1,7 @@
+{
+  "recommendations": [
+    // Supplies the "firefox" debug type used by the Firefox launch configs in launch.json.
+    // Chrome's debug type is built into VS Code, so it needs no extension here.
+    "firefox-devtools.vscode-firefox-debug"
+  ]
+}

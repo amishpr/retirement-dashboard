@@ -26,6 +26,35 @@
       "port": 9222,
       "url": "http://localhost:*",
       "webRoot": "${workspaceFolder}"
+    },
+    {
+      // Needs the "Debugger for Firefox" extension (firefox-devtools.vscode-firefox-debug),
+      // recommended in .vscode/extensions.json. `url` plus `webRoot` is what maps the sourcemapped
+      // http://localhost:5183/src/... paths back onto files in the workspace.
+      "type": "firefox",
+      "request": "launch",
+      "name": "Launch Firefox against dev server",
+      "url": "http://localhost:5183",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "dev"
+    },
+    {
+      "type": "firefox",
+      "request": "launch",
+      "name": "Launch Firefox against Netlify dev (live data)",
+      "url": "http://localhost:8888",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "netlify dev"
+    },
+    {
+      // Firefox has to be started with remote debugging already enabled, e.g.
+      // `firefox --start-debugger-server 6000`, with devtools.debugger.remote-enabled set to true.
+      "type": "firefox",
+      "request": "attach",
+      "name": "Attach to Firefox",
+      "port": 6000,
+      "url": "http://localhost:5183",
+      "webRoot": "${workspaceFolder}"
     }
   ]
 }
