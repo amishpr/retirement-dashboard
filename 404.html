@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, follow" />
     <title>Page not found | Retirement Investing Dashboard</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- This page is a Vite HTML entry (rather than a file copied straight out of public/) so
+         that %BASE_URL% gets substituted at build time. Netlify serves the site from "/", but
+         a GitHub Pages project site serves it from "/<repo>/", and a hardcoded "/" would send
+         visitors to the wrong origin root there. -->
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fcfcfb" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1729" />
     <style>
@@ -94,7 +98,7 @@
         The dashboard lives on a single page, so there is not much else to find here. The link you
         followed may be out of date.
       </p>
-      <a href="/">Back to the dashboard</a>
+      <a href="%BASE_URL%">Back to the dashboard</a>
     </main>
   </body>
 </html>

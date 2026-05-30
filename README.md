@@ -51,6 +51,7 @@ five year return and volatility for any ticker you type in, through a small serv
 .vscode/                     Tasks and Chrome debug configs
 netlify/functions/finance.mts Serverless proxy for live returns and volatility
 netlify.toml                 Netlify build, dev, and redirect settings
+404.html                     Not-found page, built as a second Vite entry so its links follow `base`
 vite.config.ts               Vite config (dev server is pinned to port 5183)
 src/
   App.tsx                    Top level state, derived calculations, and page layout
