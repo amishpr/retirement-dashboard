@@ -6,6 +6,13 @@
  */
 
 const ALLOWED_RANGES = new Set(["1y", "2y", "5y", "10y", "max"]);
+
+/**
+ * Origins allowed to call this proxy cross-origin. The Netlify deploy calls it same-origin and
+ * sends no Origin header, so it never needs an entry here — this exists for the GitHub Pages
+ * mirror, which is static-only and has no way to run a copy of the function itself.
+ */
+const ALLOWED_ORIGINS = new Set(["https://amishpr.github.io"]);
 const SYMBOL_PATTERN = /^[A-Z0-9.-]{1,10}$/;
 const MAX_SYMBOLS = 15;
 
@@ -26,6 +33,9 @@ interface QuoteResult {
 }
 
 export default async (req: Request) => {
+  const origin = req.headers.get("origin");
+  const allowOrigin = origin && ALLOWED_ORIGINS.has(origin) ? origin : undefined;
+
   const url = new URL(req.url);
   const rawSymbols = url.searchParams.get("symbols") ?? "";
   const rangeParam = url.searchParams.get("range") ?? "5y";
@@ -41,11 +51,15 @@ export default async (req: Request) => {
   ).slice(0, MAX_SYMBOLS);
 
   if (symbols.length === 0) {
-    return jsonResponse({ error: "Provide at least one symbol via ?symbols=TICKER,TICKER" }, 400);
+    return jsonResponse(
+      { error: "Provide at least one symbol via ?symbols=TICKER,TICKER" },
+      400,
+      allowOrigin,
+    );
   }
 
   const results = await Promise.all(symbols.map((symbol) => fetchQuote(symbol, range)));
-  return jsonResponse({ results });
+  return jsonResponse({ results }, 200, allowOrigin);
 };
 
 async function fetchQuote(symbol: string, range: string): Promise<QuoteResult> {
@@ -137,13 +151,17 @@ function computeRisk(monthlyPrices: number[]): { volatility?: number; riskLabel?
   return { volatility, riskLabel };
 }
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body: unknown, status = 200, allowOrigin?: string): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
       "content-type": "application/json",
       // Only successful lookups are worth caching; a cached 400 would keep failing after the fix.
       "cache-control": status === 200 ? "public, max-age=300" : "no-store",
+      // The allow-origin header echoes the caller, so caches have to key on it or one origin's
+      // response could be replayed to another.
+      vary: "origin",
+      ...(allowOrigin ? { "access-control-allow-origin": allowOrigin } : {}),
     },
   });
 }
