@@ -1,0 +1,69 @@
+# Builds the dashboard and publishes it to GitHub Pages.
+#
+# Netlify remains the canonical deploy (it's the URL in the canonical tag, the sitemap, and the
+# social cards) and it builds itself straight from the repo. This workflow only produces the
+# GitHub Pages mirror, which needs two things Netlify doesn't:
+#
+#   1. A base path. A Pages *project* site is served from https://<user>.github.io/<repo>/, so the
+#      asset URLs baked into the HTML have to carry that prefix.
+#   2. An absolute finance-proxy URL. Pages is static-only and can't run netlify/functions, so the
+#      live-quote lookups are pointed at the Netlify deploy's copy of the function, which
+#      allow-lists this origin for CORS. If that's ever unreachable the app just falls back to its
+#      built-in historical averages.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Lets the mirror be rebuilt by hand, e.g. after changing the Netlify function.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let an in-flight deploy finish rather than cancelling it, but never run two at once.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          # Derived from the repo name so forks and renames keep working without an edit here.
+          BASE_PATH: /${{ github.event.repository.name }}/
+          VITE_FINANCE_ENDPOINT: https://amishpr-retirement-dashboard.netlify.app/.netlify/functions/finance
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

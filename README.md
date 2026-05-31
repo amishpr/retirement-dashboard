@@ -48,6 +48,7 @@ five year return and volatility for any ticker you type in, through a small serv
 ## Project structure
 
 ```
+.github/workflows/deploy-pages.yml  Builds and publishes the GitHub Pages mirror
 .vscode/                     Tasks and Chrome debug configs
 netlify/functions/finance.mts Serverless proxy for live returns and volatility
 netlify.toml                 Netlify build, dev, and redirect settings
@@ -152,6 +153,33 @@ the `/.netlify/functions/*` route only exists in a Netlify environment.
 3. Netlify reads `netlify.toml` automatically. Build command is `npm run build`, the publish
    directory is `dist`, and the functions directory is `netlify/functions`. No environment
    variables are required.
+
+## Deploying to GitHub Pages
+
+Netlify stays the canonical deploy — it's the URL in the canonical tag, the sitemap, and the
+social cards — but the site can also be mirrored to GitHub Pages by
+`.github/workflows/deploy-pages.yml`, which builds on every push to `main` and on manual dispatch.
+
+To turn it on, open the repository's Settings, then Pages, and set **Source** to **GitHub
+Actions**. Nothing else needs configuring; there are no secrets to add.
+
+Two things differ from the Netlify build, and the workflow handles both:
+
+- **Base path.** A Pages project site is served from `https://<user>.github.io/<repo>/`, so the
+  build runs with `BASE_PATH` set from the repository name and Vite prefixes every asset URL in
+  the HTML with it. Builds without `BASE_PATH` keep the plain `/` root that Netlify serves from,
+  so forks and renames work without editing anything.
+- **Live market data.** Pages is static-only and can't run `netlify/functions/finance.mts`, so the
+  build sets `VITE_FINANCE_ENDPOINT` to the Netlify deploy's copy of the function, which
+  allow-lists `https://amishpr.github.io` for CORS. If you fork this, update that allow-list in
+  `netlify/functions/finance.mts` and the endpoint in the workflow to match your own deploys — or
+  drop both, in which case the mirror simply falls back to the built-in historical averages, the
+  same way `npm run dev` does.
+
+Because the canonical tag still points at the Netlify site, search engines fold the mirror into
+that one rather than indexing it separately. `robots.txt` and `sitemap.xml` are likewise written
+for the Netlify origin; a Pages project site serves them from under `/<repo>/`, where crawlers
+ignore them anyway.
 
 ## Exporting
 
