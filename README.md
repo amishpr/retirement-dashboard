@@ -7,6 +7,8 @@ balance forward with charts covering growth, risk, holdings, sector exposure, an
 is also a goal mode that works backward: tell it the retirement income you want, and it solves
 for the contribution you would need to get there.
 
+![The dashboard projecting a VT position from age 30 to 65: plan controls on the left, headline projection, fund summary, stat tiles, and growth chart on the right](docs/screenshot.png)
+
 Everything runs in the browser using built in historical return assumptions by default. When
 deployed on Netlify, or run locally with the Netlify CLI, the app also pulls a real trailing
 five year return and volatility for any ticker you type in, through a small serverless function.
@@ -50,6 +52,7 @@ five year return and volatility for any ticker you type in, through a small serv
 ```
 .github/workflows/deploy-pages.yml  Builds and publishes the GitHub Pages mirror
 .vscode/                     Tasks and Chrome debug configs
+docs/screenshot.png          The README screenshot (not shipped with the site)
 netlify/functions/finance.mts Serverless proxy for live returns and volatility
 netlify.toml                 Netlify build, dev, and redirect settings
 404.html                     Not-found page, built as a second Vite entry so its links follow `base`
