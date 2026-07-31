@@ -10,34 +10,34 @@
          a GitHub Pages project site serves it from "/<repo>/", and a hardcoded "/" would send
          visitors to the wrong origin root there. -->
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fcfcfb" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1729" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#e5e9f0" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440" />
     <style>
       :root {
         color-scheme: light;
-        --surface: #f9f9f7;
-        --card: #ffffff;
-        --text: #0b0b0b;
-        --muted: #898781;
-        --border: rgba(11, 11, 11, 0.1);
-        --accent: #2e5090;
+        --surface: #e5e9f0;
+        --card: #eceff4;
+        --text: #2e3440;
+        --muted: #566074;
+        --border: rgba(46, 52, 64, 0.12);
+        --accent: #587b32;
       }
 
       @media (prefers-color-scheme: dark) {
         :root {
           color-scheme: dark;
-          --surface: #0a0f1c;
-          --card: #141d33;
-          --text: #ffffff;
-          --muted: #7c8aa8;
-          --border: rgba(255, 255, 255, 0.1);
-          --accent: #5b8ad6;
+          --surface: #2e3440;
+          --card: #3b4252;
+          --text: #eceff4;
+          --muted: #a7b1c2;
+          --border: rgba(216, 222, 233, 0.1);
+          --accent: #7ca159;
         }
       }
 
       body {
         margin: 0;
-        min-height: 100vh;
+        min-height: 100dvh;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -81,9 +81,9 @@
       a {
         display: inline-block;
         padding: 10px 18px;
-        border-radius: 10px;
-        background: var(--accent);
-        color: #ffffff;
+        border-radius: 8px;
+        background: var(--text);
+        color: var(--surface);
         font-size: 14px;
         font-weight: 600;
         text-decoration: none;

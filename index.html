@@ -14,8 +14,19 @@
     <meta name="author" content="Amish Prajapati" />
 
     <!-- The browser chrome follows the app's own light and dark surfaces. -->
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fcfcfb" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1729" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#e5e9f0" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2e3440" />
+
+    <!-- Applies a theme picked from the header menu before first paint, so a stored choice that
+         differs from the OS setting doesn't flash the other theme while the app loads. -->
+    <script>
+      try {
+        var storedTheme = localStorage.getItem("theme");
+        if (storedTheme === "light" || storedTheme === "dark") {
+          document.documentElement.setAttribute("data-theme", storedTheme);
+        }
+      } catch (e) {}
+    </script>
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <!-- PNG fallback for crawlers and older browsers that skip SVG favicons. Google's search
