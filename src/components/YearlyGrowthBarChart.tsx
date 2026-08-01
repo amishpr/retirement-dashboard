@@ -1,25 +1,21 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import type { YearPoint } from "../lib/projection";
-import { currencyFormatterPrecise, formatCompact } from "../lib/projection";
-import { Card } from "./Card";
-import { TooltipCard } from "./ChartTooltip";
-import { DownloadCsvButton } from "./DownloadCsvButton";
+import { buildYearlyGrowth, currencyFormatterPrecise, type YearPoint, type YearlyGrowthPoint } from "../lib/projection";
+import {
+  bandCursor,
+  formatAxisMoney,
+  gridProps,
+  niceTicks,
+  REVEAL_MS,
+  useMountReveal,
+  xAxisProps,
+  yAxisProps,
+} from "../lib/chartTheme";
+import { TooltipCard, type ChartTooltipProps } from "./ChartTooltip";
 
-interface YearlyGrowthPoint {
-  age: number;
-  yearlyGrowth: number;
-}
-
-function buildYearlyGrowth(data: YearPoint[]): YearlyGrowthPoint[] {
-  return data.slice(1).map((point, i) => ({
-    age: point.age,
-    yearlyGrowth: point.growth - data[i].growth,
-  }));
-}
-
-function YearlyGrowthTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
+function YearlyGrowthTooltip({ active, payload, label }: ChartTooltipProps<YearlyGrowthPoint>) {
+  const point = payload?.[0]?.payload;
+  if (!active || !point) return null;
   return (
     <TooltipCard
       title={`Age ${label}`}
@@ -27,52 +23,43 @@ function YearlyGrowthTooltip({ active, payload, label }: any) {
         {
           key: "yearlyGrowth",
           label: "Market growth that year",
-          value: currencyFormatterPrecise.format(payload[0].value),
-          color: "var(--series-growth)",
+          value: currencyFormatterPrecise.format(point.yearlyGrowth),
+          color: "var(--accent)",
         },
       ]}
     />
   );
 }
 
+/** Market growth added in each year, excluding new contributions. Chart body only. */
 export const YearlyGrowthBarChart = memo(function YearlyGrowthBarChart({ data }: { data: YearPoint[] }) {
-  const chartData = buildYearlyGrowth(data);
+  const reveal = useMountReveal();
+  const chartData = useMemo(() => buildYearlyGrowth(data), [data]);
+  const hasNegative = chartData.some((d) => d.yearlyGrowth < 0);
+  const ticks = hasNegative ? undefined : niceTicks(Math.max(0, ...chartData.map((d) => d.yearlyGrowth)));
 
   return (
-    <Card
-      title="Growth By Year"
-      subtitle="How much of your gain comes from the market each year, not new contributions"
-      action={
-        <DownloadCsvButton
-          filename="growth-by-year.csv"
-          getRows={() => chartData.map((row) => ({ age: row.age, yearlyGrowth: row.yearlyGrowth.toFixed(2) }))}
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={chartData} margin={{ top: 6, right: 8, left: 0, bottom: 0 }} barCategoryGap={2}>
+        <CartesianGrid {...gridProps} />
+        <XAxis dataKey="age" {...xAxisProps} interval="preserveStartEnd" minTickGap={28} />
+        <YAxis
+          {...yAxisProps}
+          ticks={ticks}
+          domain={ticks ? [0, ticks[ticks.length - 1]] : undefined}
+          tickFormatter={formatAxisMoney}
+          width={52}
         />
-      }
-    >
-      <div className="h-64 sm:h-72">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
-            <CartesianGrid stroke="var(--gridline)" vertical={false} />
-            <XAxis
-              dataKey="age"
-              tickLine={false}
-              axisLine={{ stroke: "var(--baseline)" }}
-              tick={{ fill: "var(--text-muted)", fontSize: 12 }}
-              tickMargin={8}
-              minTickGap={24}
-            />
-            <YAxis
-              tickLine={false}
-              axisLine={false}
-              tick={{ fill: "var(--text-muted)", fontSize: 12 }}
-              tickFormatter={(v) => formatCompact(v)}
-              width={56}
-            />
-            <Tooltip content={<YearlyGrowthTooltip />} cursor={{ fill: "var(--gridline)", opacity: 0.5 }} />
-            <Bar dataKey="yearlyGrowth" name="Market growth" fill="var(--series-growth)" radius={[3, 3, 0, 0]} maxBarSize={20} isAnimationActive={false} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </Card>
+        <Tooltip content={<YearlyGrowthTooltip />} cursor={bandCursor} />
+        <Bar
+          dataKey="yearlyGrowth"
+          fill="var(--accent)"
+          radius={[3, 3, 0, 0]}
+          maxBarSize={20}
+          isAnimationActive={reveal}
+          animationDuration={REVEAL_MS}
+        />
+      </BarChart>
+    </ResponsiveContainer>
   );
 });
