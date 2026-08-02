@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, type ReactNode } from "react";
 import type { RiskLabel } from "../data/etfs";
 import { Card } from "./Card";
 import { RiskBadge } from "./RiskBadge";
@@ -16,65 +16,64 @@ export interface FundOverviewData {
   international?: number;
 }
 
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
+function Stat({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
-      <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-        {label}
-      </p>
-      <p className="mt-0.5 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-        {value}
-      </p>
+      <dt className="text-[13px] text-ink-3">{label}</dt>
+      <dd className="mt-0.5 text-[15px] font-semibold text-ink tabular-nums">{value}</dd>
     </div>
   );
 }
 
+const pct = (v: number | undefined, digits: number, suffix = "") =>
+  v === undefined ? "n/a" : `${(v * 100).toFixed(digits)}%${suffix}`;
+
+/** The selected fund (or mix) at a glance, including where its money is invested. */
 export const FundOverviewCard = memo(function FundOverviewCard({ data }: { data: FundOverviewData }) {
+  const isMix = data.ticker === "MIX";
+  const hasSplit = data.domestic !== undefined && data.international !== undefined;
+
   return (
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-baseline gap-2">
-            <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-              {data.ticker}
-            </h3>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-mono text-xl font-semibold tracking-[-0.02em] text-ink">{isMix ? "Your mix" : data.ticker}</h2>
             {data.category && (
-              <span
-                className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-                style={{
-                  background: "color-mix(in srgb, var(--series-contrib) 12%, transparent)",
-                  color: "var(--series-contrib)",
-                }}
-              >
-                {data.category}
-              </span>
+              <span className="rounded-[6px] bg-sunken px-1.5 py-0.5 text-xs font-medium text-ink-2">{data.category}</span>
             )}
+            {!isMix && <span className="text-sm text-ink-2">{data.name}</span>}
           </div>
-          <p className="mt-0.5 text-sm" style={{ color: "var(--text-secondary)" }}>
-            {data.name}
-          </p>
-          {data.description && (
-            <p className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
-              {data.description}
-            </p>
-          )}
+          {data.description && <p className="mt-1 text-[13px] text-ink-3">{data.description}</p>}
         </div>
-        {data.riskLabel && <RiskBadge label={data.riskLabel} className="shrink-0 text-xs" />}
+        {data.riskLabel && <RiskBadge label={data.riskLabel} className="shrink-0 text-[13px]" />}
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Stat label="Assumed avg. return" value={`${(data.avgReturn * 100).toFixed(1)}%/yr`} />
-        <Stat label="Expense ratio" value={data.expenseRatio !== undefined ? `${(data.expenseRatio * 100).toFixed(2)}%/yr` : "—"} />
-        <Stat label="Volatility" value={data.volatility !== undefined ? `${(data.volatility * 100).toFixed(1)}%` : "—"} />
-        <Stat
-          label="Domestic / international"
-          value={
-            data.domestic !== undefined && data.international !== undefined
-              ? `${(data.domestic * 100).toFixed(0)}% / ${(data.international * 100).toFixed(0)}%`
-              : "—"
-          }
-        />
-      </div>
+      <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-line pt-5 sm:grid-cols-3 md:grid-cols-[auto_auto_auto_minmax(0,1fr)] md:gap-x-10">
+        <Stat label="Assumed return" value={pct(data.avgReturn, 1, "/yr")} />
+        <Stat label="Expense ratio" value={pct(data.expenseRatio, 2, "/yr")} />
+        <Stat label="Volatility" value={pct(data.volatility, 1)} />
+        {hasSplit && (
+          <div className="col-span-2 min-w-0 sm:col-span-3 md:col-span-1">
+            <dt className="flex justify-between text-[13px] text-ink-3">
+              <span>
+                US <span className="font-semibold text-ink tabular-nums">{pct(data.domestic, 0)}</span>
+              </span>
+              <span>
+                International <span className="font-semibold text-ink tabular-nums">{pct(data.international, 0)}</span>
+              </span>
+            </dt>
+            <dd
+              role="img"
+              aria-label={`${pct(data.domestic, 0)} US, ${pct(data.international, 0)} international`}
+              className="mt-2 flex h-2.5 gap-[2px] overflow-hidden rounded-[3px]"
+            >
+              <span className="bg-ink-2" style={{ width: `${data.domestic! * 100}%` }} />
+              <span className="bg-ink-3/45" style={{ width: `${data.international! * 100}%` }} />
+            </dd>
+          </div>
+        )}
+      </dl>
     </Card>
   );
 });
