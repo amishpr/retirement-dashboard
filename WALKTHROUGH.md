@@ -73,9 +73,9 @@ and for the numbers that count up when an input changes. Its motion values updat
 directly instead of re-rendering the React component on every frame, so a counting number stays
 cheap even while other parts of the page are busy.
 
-**lucide-react.** A clean, consistent icon set with a small footprint. Used throughout for
-things like the plus and minus buttons on the age stepper, the print icon, and the piggy bank
-mark used both in the header and as the site's favicon.
+**Phosphor.** A consistent icon set with a small footprint and one stroke weight across every
+glyph, including brand marks like GitHub. Used for things like the plus and minus buttons on the
+age stepper, the Export menu, and the risk tier icons.
 
 **ExcelJS.** Needed for the "download as a spreadsheet" feature, which produces a real multi
 sheet .xlsx file rather than a single flat CSV. An earlier attempt used the more commonly known
@@ -101,8 +101,7 @@ browser.
 All of the user's inputs live in one `Controls` object held in `App.tsx` with a single
 `useState`. The Your Plan panel receives that object and a setter, so it is a fully controlled
 component and there is no second copy of the inputs to keep in sync. Everything else is derived
-from it. The blended return, the growth projection, the scenario range, the candlestick data,
-the risk points, and the composition breakdowns are all computed with `useMemo` in `App`, then
+from it. The blended return, the growth projection, the scenario range, the risk points, and the composition breakdowns are all computed with `useMemo` in `App`, then
 passed down as plain props to charts that only know how to draw what they are given.
 
 That structure keeps the math separate from the drawing, which makes the math easy to check and
@@ -178,10 +177,11 @@ Each chart type was picked to match the kind of comparison it needs to support, 
 defaulting to whatever looked good. A line and area chart carries the main growth projection
 because the primary question there is how a single value changes over time. A scatter plot
 handles risk versus return because the point is to compare two independent measurements across
-several funds at once. Donut charts are used for holdings, sector, and geography, since those
-are all about how a whole breaks into parts. Bar charts appear anywhere a straightforward
-side by side comparison is more useful than a trend line, such as comparing volatility or yearly
-growth across funds.
+several funds at once. Holdings, sectors, and the fund comparison are ranked horizontal bars
+with the value printed on every row, because the question there is which items are biggest and
+by how much, and a bar length is easier to compare than a slice angle. Two part splits, like
+contributions versus growth or US versus international, are a single split bar. A bar chart
+carries yearly growth, where each year is its own amount rather than a point on a trend.
 
 Color is treated the same way. Categorical colors, like each fund's slice in a chart, series
 colors, like contributions versus growth, and status colors, like a risk level of low, medium,

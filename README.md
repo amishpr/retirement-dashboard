@@ -7,7 +7,7 @@ balance forward with charts covering growth, risk, holdings, sector exposure, an
 is also a goal mode that works backward: tell it the retirement income you want, and it solves
 for the contribution you would need to get there.
 
-![The dashboard projecting a VT position from age 30 to 65: plan controls on the left, headline projection, fund summary, stat tiles, and growth chart on the right](docs/screenshot.png)
+![The dashboard projecting a VT position from age 30 to 65: plan controls on the left, the projected balance and its contributions versus growth split, and the projection chart on the right](docs/screenshot.png)
 
 Everything runs in the browser using built in historical return assumptions by default. When
 deployed on Netlify, or run locally with the Netlify CLI, the app also pulls a real trailing
@@ -24,24 +24,28 @@ five year return and volatility for any ticker you type in, through a small serv
 - Switch to goal mode and enter a desired annual retirement income instead. The app solves for
   the contribution needed to reach it
 - Five year return and volatility lookup for any ticker, when live data is available
-- Growth projection chart (with a table view), a conservative to optimistic scenario range, a
-  year by year candlestick style breakdown, and a bar chart of yearly gains
-- Risk versus return scatter plot and a volatility comparison across funds
+- One projection card with four views: the balance split into contributions and market growth,
+  a lower to higher return range, a bar chart of yearly gains, and a full year by year table
+- Risk versus return scatter plot, with a table view that lists each fund's volatility and risk
+  tier
 - Top ten holdings, sector weightings, and domestic versus international breakdowns, with
   automatic blending across a multi fund portfolio
 - A comparison of your plan against every preset fund
 - Estimated retirement income using the 4 percent safe withdrawal rule
-- Stat tiles and the headline projection count up to their new value when you change an input
+- The headline projection and its supporting figures count up to their new value when you
+  change an input
 - CSV export on individual charts, a full multi sheet Excel workbook, and a one click PDF export
-- Light and dark themes
+- Light and dark themes that follow the system setting, with a manual override
 
 ## Tech stack
 
 - React 19, TypeScript, and Vite
 - Tailwind CSS v4 for styling
 - Recharts for all charts
-- Framer Motion for the headline entrance and for numbers that count up when an input changes
-- lucide-react for icons
+- Framer Motion for numbers that count up when an input changes, and for the sliding
+  segmented controls
+- Geist and Geist Mono, self hosted through Fontsource
+- Phosphor for icons
 - ExcelJS for the multi sheet workbook export, loaded on demand so it does not add weight to
   the initial page load
 - A single Netlify Function for the optional live data proxy
@@ -60,25 +64,24 @@ vite.config.ts               Vite config (dev server is pinned to port 5183)
 src/
   App.tsx                    Top level state, derived calculations, and page layout
   main.tsx                   React entry point
-  index.css                  Theme variables (light, dark, and print) and global styles
+  index.css                  Design tokens (one light-dark() set), Tailwind theme mapping, and global styles
   components/
-    ControlsPanel.tsx        The "Your Plan" sidebar: fund picker, mix builder, age, contributions
-    GrowthChart.tsx          Main projected balance area chart, with a table view
-    ScenarioChart.tsx        Conservative / expected / optimistic range
-    BreakdownDonut.tsx       Contributions versus growth split
-    YearlyGrowthBarChart.tsx Bar chart of growth earned each year
-    CandlestickChart.tsx     Year by year growth shown as a candlestick style chart
-    RetirementIncomeCard.tsx Estimated retirement income at the 4 percent rule
-    RiskReturnChart.tsx      Scatter plot of volatility versus average return
-    VolatilityBarChart.tsx   Volatility comparison across funds
-    HoldingsDonut.tsx / HoldingsChart.tsx   Top ten holdings, as a donut and as a bar chart
+    Header.tsx               Title, Export menu (print to PDF, Excel report), GitHub link, theme menu
+    SummaryHero.tsx          Projected balance, retirement income, and the contributions versus growth split
+    MobileBalanceBar.tsx     Keeps the projected balance in view on phones while you edit the plan
+    ControlsPanel.tsx        The "Your plan" sidebar: fund search, mix builder, ages, contributions, goal mode
+    ProjectionCard.tsx       Tabs for the balance, range, and yearly charts plus the full table
+    GrowthChart.tsx          Stacked contributions and market growth over time
+    ScenarioChart.tsx        Expected path with a lower to higher return band
+    YearlyGrowthBarChart.tsx Market growth added each year
+    FundOverviewCard.tsx     The selected fund or mix: return, fees, volatility, US versus international
+    HoldingsChart.tsx        Top ten holdings
     SectorChart.tsx          Sector weighting breakdown
-    GeographyDonut.tsx       Domestic versus international split
-    CompareChart.tsx         Side by side comparison against every preset fund
-    FundOverviewCard.tsx     Summary card for the selected fund or portfolio mix
-    DownloadCsvButton.tsx / DownloadReportButton.tsx / PrintPageButton.tsx   Export controls
-    Card.tsx, ChartTooltip.tsx, StatTile.tsx, AnimatedNumber.tsx, ThemeToggle.tsx, RiskBadge.tsx
-                             Shared UI pieces
+    CompareChart.tsx         Your plan run through every preset fund, ranked
+    RiskReturnChart.tsx      Scatter plot of volatility versus average return, with a table view
+    RankedBars.tsx           Labeled horizontal bars shared by holdings, sectors, and the comparison
+    Card.tsx, Segmented.tsx, Menu.tsx, ChartTooltip.tsx, AnimatedNumber.tsx, RiskBadge.tsx,
+    DownloadCsvButton.tsx    Shared UI pieces
   data/
     etfs.ts                  Preset fund list and their assumed return, expense ratio, and risk
     fundComposition.ts       Static top holdings, sector, and geography data per fund
@@ -88,6 +91,8 @@ src/
     liveData.ts              Client for the live data function
     risk.ts                  Volatility to risk label bucketing
     excelExport.ts, download.ts   Export helpers
+    chartTheme.ts            Shared axis, grid, and tick styling, round-number ticks, and the draw-in timing
+    ui.ts                    Class strings for the shared button and field shapes
 ```
 
 ## Getting started
@@ -250,6 +255,6 @@ math and two real bugs the model went through during an audit, is in `WALKTHROUG
 
 ## Disclaimer
 
-Historical average returns, the scenario range, the candlestick breakdown, fund composition
+Historical average returns, the scenario range, fund composition
 data, and the retirement income estimate are all educational approximations. They are not
 guarantees, predictions, or financial advice.
