@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from "react";
 import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from "recharts";
-import { formatAxisPercent, lineCursor, niceTicks, numberTick } from "../lib/chartTheme";
+import { formatAxisPercent, lineCursor, niceTicks, niceTicksRange, numberTick } from "../lib/chartTheme";
 import { classifyRisk } from "../lib/risk";
 import { Card } from "./Card";
 import { TooltipCard, type ChartTooltipProps } from "./ChartTooltip";
@@ -91,7 +91,8 @@ export const RiskReturnChart = memo(function RiskReturnChart({ points }: { point
 
   const byRisk = useMemo(() => [...data].sort((a, b) => a.risk - b.risk), [data]);
   const xTicks = niceTicks(Math.max(1, ...data.map((d) => d.riskPct)));
-  const yTicks = niceTicks(Math.max(1, ...data.map((d) => d.returnPct)));
+  // A custom ticker can be set to a negative return, so the y axis reaches below 0% when it has to.
+  const yTicks = niceTicksRange(Math.min(0, ...data.map((d) => d.returnPct)), Math.max(1, ...data.map((d) => d.returnPct)));
 
   return (
     <Card
@@ -142,7 +143,7 @@ export const RiskReturnChart = memo(function RiskReturnChart({ points }: { point
                 type="number"
                 dataKey="returnPct"
                 ticks={yTicks}
-                domain={[0, yTicks[yTicks.length - 1]]}
+                domain={[yTicks[0], yTicks[yTicks.length - 1]]}
                 tickFormatter={formatAxisPercent}
                 tickLine={false}
                 axisLine={false}

@@ -22,6 +22,8 @@ interface QuoteResult {
   symbol: string;
   ok: boolean;
   price?: number;
+  /** Average monthly close over the last 12 months, shown when there's no live price. */
+  avgPrice?: number;
   currency?: string;
   name?: string;
   cagr?: number;
@@ -96,6 +98,13 @@ async function fetchQuote(symbol: string, range: string): Promise<QuoteResult> {
       );
     const prices = series.map((row) => row.price);
 
+    // The average uses unadjusted closes: it stands in for the quoted price, and adjclose
+    // back-adjusts older months for dividends, which would pull the average below what traded.
+    const rawClose: unknown[] = result.indicators?.quote?.[0]?.close ?? [];
+    const recentCloses = rawClose.filter((c): c is number => typeof c === "number" && c > 0).slice(-12);
+    const avgPrice =
+      recentCloses.length > 0 ? recentCloses.reduce((sum, c) => sum + c, 0) / recentCloses.length : undefined;
+
     let cagr: number | undefined;
     let years: number | undefined;
     if (series.length >= 2) {
@@ -117,6 +126,7 @@ async function fetchQuote(symbol: string, range: string): Promise<QuoteResult> {
       symbol,
       ok: true,
       price: typeof meta.regularMarketPrice === "number" ? meta.regularMarketPrice : undefined,
+      avgPrice,
       currency: meta.currency,
       name: meta.longName ?? meta.shortName ?? symbol,
       cagr,

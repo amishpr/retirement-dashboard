@@ -1,5 +1,6 @@
 import { memo, type ReactNode } from "react";
 import type { RiskLabel } from "../data/etfs";
+import { formatPrice, type FundPrice } from "../lib/liveData";
 import { Card } from "./Card";
 import { RiskBadge } from "./RiskBadge";
 
@@ -9,6 +10,8 @@ export interface FundOverviewData {
   description?: string;
   category?: string;
   avgReturn: number;
+  /** Undefined for a mix, and for a custom ticker until its first quote arrives. */
+  price?: FundPrice;
   expenseRatio?: number;
   riskLabel?: RiskLabel;
   volatility?: number;
@@ -32,6 +35,7 @@ const pct = (v: number | undefined, digits: number, suffix = "") =>
 export const FundOverviewCard = memo(function FundOverviewCard({ data }: { data: FundOverviewData }) {
   const isMix = data.ticker === "MIX";
   const hasSplit = data.domestic !== undefined && data.international !== undefined;
+  const { price } = data;
 
   return (
     <Card>
@@ -49,12 +53,27 @@ export const FundOverviewCard = memo(function FundOverviewCard({ data }: { data:
         {data.riskLabel && <RiskBadge label={data.riskLabel} className="shrink-0 text-[13px]" />}
       </div>
 
-      <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-line pt-5 sm:grid-cols-3 md:grid-cols-[auto_auto_auto_minmax(0,1fr)] md:gap-x-10">
+      {/* The US/international bar takes a row of its own until there's room for it beside the stats. */}
+      <dl
+        className={`mt-5 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-line pt-5 md:gap-x-10 ${
+          price ? "sm:grid-cols-4 xl:grid-cols-[auto_auto_auto_auto_minmax(0,1fr)]" : "sm:grid-cols-3 md:grid-cols-[auto_auto_auto_minmax(0,1fr)]"
+        }`}
+      >
+        {price && (
+          <Stat
+            label={price.source === "live" ? "Live price" : "12-month avg price"}
+            value={
+              <span title={price.source === "live" ? undefined : "Live price unavailable, showing the average close over the past 12 months"}>
+                {formatPrice(price)}
+              </span>
+            }
+          />
+        )}
         <Stat label="Assumed return" value={pct(data.avgReturn, 1, "/yr")} />
         <Stat label="Expense ratio" value={pct(data.expenseRatio, 2, "/yr")} />
         <Stat label="Volatility" value={pct(data.volatility, 1)} />
         {hasSplit && (
-          <div className="col-span-2 min-w-0 sm:col-span-3 md:col-span-1">
+          <div className={`col-span-2 min-w-0 ${price ? "sm:col-span-4 xl:col-span-1" : "sm:col-span-3 md:col-span-1"}`}>
             <dt className="flex justify-between text-[13px] text-ink-3">
               <span>
                 US <span className="font-semibold text-ink tabular-nums">{pct(data.domestic, 0)}</span>

@@ -42,6 +42,7 @@ export const SectorChart = memo(function SectorChart({
       <RankedBars
         label={`Sector weights in ${label}`}
         labelWidth="11rem"
+        barClass="bg-sectors"
         rows={data.map((s) => ({
           key: s.name,
           label: s.name,

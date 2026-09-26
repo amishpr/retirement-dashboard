@@ -92,7 +92,7 @@ export const ProjectionCard = memo(function ProjectionCard({
   const subtitles: Record<View, string> = {
     balance: `What you put into ${planLabel} versus what the market adds, year by year.`,
     range: `How the balance changes if returns come in ${Math.round(returnSpread * 100)} points higher or lower.`,
-    yearly: "Market growth added each year, not counting new contributions.",
+    yearly: "Market growth (or loss) each year, not counting new contributions.",
     table: "Every year of the projection.",
   };
 

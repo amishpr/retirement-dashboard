@@ -47,8 +47,12 @@ export const SummaryHero = memo(function SummaryHero({
   annualReturn: number;
   withdrawalRate: number;
 }) {
-  const growthShare = balance > 0 ? Math.min(1, Math.max(0, growth) / balance) : 0;
-  const contribShare = 1 - growthShare;
+  // With a gain, the bar splits the balance into what you put in and what the market added. With a
+  // loss (a negative assumed return), it splits what you put in into what's left and what was lost.
+  const loss = growth < 0;
+  const growthShare = !loss && balance > 0 ? Math.min(1, growth / balance) : 0;
+  const lostShare = loss && contributed > 0 ? Math.min(1, -growth / contributed) : 0;
+  const contribShare = 1 - growthShare - lostShare;
   const pct = (v: number) => `${Math.round(v * 100)}%`;
 
   return (
@@ -79,11 +83,19 @@ export const SummaryHero = memo(function SummaryHero({
       <div className="mt-8">
         <div
           role="img"
-          aria-label={`${pct(contribShare)} of the balance is money you put in, ${pct(growthShare)} is market growth`}
+          aria-label={
+            loss
+              ? `The market takes ${pct(lostShare)} of the money you put in`
+              : `${pct(contribShare)} of the balance is money you put in, ${pct(growthShare)} is market growth`
+          }
           className="flex h-3 gap-[2px] overflow-hidden rounded-[4px]"
         >
           <div className="bg-contrib" style={{ width: `${contribShare * 100}%` }} />
-          <div className="bg-accent" style={{ width: `${growthShare * 100}%` }} />
+          {loss ? (
+            <div className="bg-[var(--status-critical)]" style={{ width: `${lostShare * 100}%` }} />
+          ) : (
+            <div className="bg-accent" style={{ width: `${growthShare * 100}%` }} />
+          )}
         </div>
         <dl className="mt-3 flex flex-wrap items-baseline gap-x-8 gap-y-2 text-[13px]">
           <div className="flex items-baseline gap-2">
@@ -94,10 +106,13 @@ export const SummaryHero = memo(function SummaryHero({
             </dd>
           </div>
           <div className="flex items-baseline gap-2">
-            <span aria-hidden="true" className="h-2.5 w-2.5 translate-y-px self-center rounded-[3px] bg-accent" />
-            <dt className="text-ink-3">The market adds</dt>
+            <span
+              aria-hidden="true"
+              className={`h-2.5 w-2.5 translate-y-px self-center rounded-[3px] ${loss ? "bg-[var(--status-critical)]" : "bg-accent"}`}
+            />
+            <dt className="text-ink-3">{loss ? "The market takes" : "The market adds"}</dt>
             <dd className="font-semibold text-ink tabular-nums">
-              <AnimatedNumber value={growth} formatter={formatMoney} />
+              <AnimatedNumber value={Math.abs(growth)} formatter={formatMoney} />
             </dd>
           </div>
           <div className="flex items-baseline gap-2 sm:ml-auto">

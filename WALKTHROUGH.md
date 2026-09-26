@@ -171,6 +171,12 @@ timeout on the upstream fetch, since it is proxying an undocumented third party 
 was never meant to be called this way. It also computes an annualized volatility figure from the
 monthly price history, which feeds directly into the risk versus return chart.
 
+Prices follow the same rule. The app shows each fund's live price and refreshes it every five
+minutes, which matches how long the function's responses are cached. If a quote is missing, it
+falls back to a 12 month average price, first from the function and then from figures built into
+the fund list. That way the preset funds always show a price, and the fund list marks an average
+with "~" so it's never mistaken for a live quote.
+
 ## Choosing the right chart for each piece of data
 
 Each chart type was picked to match the kind of comparison it needs to support, rather than
@@ -196,8 +202,16 @@ white card background, instead of judged by eye. That turned up something surpri
 green, and teal all sit in the cool half of the color wheel, and the teal gets squeezed between
 the other two. Making it greener made it collide with the green, and making it bluer made it
 collide with the navy. What worked was spreading the colors apart in lightness as well as hue.
-The Your Plan panel uses its own accent color, kept out of the series colors on purpose, so the
-one area users can edit is not confused with a data series.
+
+The same thing came up again when the charts moved to Nord's own colors: Frost blue for
+contributions, Aurora green for growth, and two more Frost blues for the holdings and sectors
+cards, which had been plain gray. Nord's blue and green are almost exactly the same lightness, so
+they sit closer together than the check allows. The charts keep the Nord values anyway and
+separate the two layers of the balance chart with different fill strengths, a small gap, a
+legend, and a table view. On the light theme, darker and more saturated versions that passed
+every check were tried first, but they looked muddy next to the rest of Nord, so the light theme
+uses the same colors only one small step darker instead. The Your Plan panel sits on a lighter surface than the result cards, so
+the one area users can edit is not confused with the results.
 
 ## Making it feel fast
 

@@ -12,13 +12,15 @@ import { FundOverviewCard, type FundOverviewData } from "./components/FundOvervi
 import { ETF_OPTIONS, getAllFunds, DEFAULT_ETF_TICKER } from "./data/etfs";
 import { aggregatePortfolioComposition, getFundComposition, getTopHoldingsConcentration } from "./data/fundComposition";
 import type { ExcelSheet } from "./lib/excelExport";
-import { fetchLiveQuotes, type LiveQuote } from "./lib/liveData";
+import { fetchLiveQuotes, resolvePrice, type LiveQuote } from "./lib/liveData";
 import { computeBlendedReturn, computeBlendedVolatility, type PortfolioMixRow } from "./lib/portfolio";
 import { finalPoint, projectGrowth, SAFE_WITHDRAWAL_RATE, type ProjectionInput } from "./lib/projection";
 import { classifyRisk } from "./lib/risk";
 
 const RETURN_SPREAD = 0.02;
 const LIVE_RETURN_BOUNDS: [number, number] = [-0.1, 0.5];
+/** Matches the finance function's 5-minute cache, so each refresh can bring a newer quote. */
+const LIVE_REFRESH_MS = 5 * 60 * 1000;
 
 const initialControls: Controls = {
   mode: "single",
@@ -60,39 +62,48 @@ function App() {
     if (tickers.length === 0) return;
     let cancelled = false;
 
-    fetchLiveQuotes(tickers, "5y")
-      .then((results) => {
-        if (cancelled) return;
-        const okResults = results.filter((r) => r.ok);
+    const load = () =>
+      fetchLiveQuotes(tickers, "5y")
+        .then((results) => {
+          if (cancelled) return;
+          const okResults = results.filter((r) => r.ok);
 
-        setLiveData((prev) => {
-          const next = { ...prev };
-          for (const result of okResults) next[result.symbol] = result;
-          return next;
-        });
-
-        // Seed a freshly-added custom ticker's assumed return from its real 5yr CAGR, once,
-        // without clobbering a value the user has since dragged the slider to set themselves.
-        setControls((prev) => {
-          let changed = false;
-          const nextCustomTickers = prev.customTickers.map((ct) => {
-            const live = okResults.find((r) => r.symbol === ct.ticker);
-            if (!ct.liveSeeded && live?.cagr !== undefined) {
-              changed = true;
-              const clamped = Math.min(LIVE_RETURN_BOUNDS[1], Math.max(LIVE_RETURN_BOUNDS[0], live.cagr));
-              return { ...ct, avgReturn: clamped, liveSeeded: true };
-            }
-            return ct;
+          setLiveData((prev) => {
+            const next = { ...prev };
+            for (const result of okResults) next[result.symbol] = result;
+            return next;
           });
-          return changed ? { ...prev, customTickers: nextCustomTickers } : prev;
+
+          // Seed a freshly-added custom ticker's assumed return from its real 5yr CAGR, once,
+          // without clobbering a value the user has since dragged the slider to set themselves.
+          setControls((prev) => {
+            let changed = false;
+            const nextCustomTickers = prev.customTickers.map((ct) => {
+              const live = okResults.find((r) => r.symbol === ct.ticker);
+              if (!ct.liveSeeded && live?.cagr !== undefined) {
+                changed = true;
+                const clamped = Math.min(LIVE_RETURN_BOUNDS[1], Math.max(LIVE_RETURN_BOUNDS[0], live.cagr));
+                return { ...ct, avgReturn: clamped, liveSeeded: true };
+              }
+              return ct;
+            });
+            return changed ? { ...prev, customTickers: nextCustomTickers } : prev;
+          });
+        })
+        .catch(() => {
+          // Live data unavailable (e.g. running plain `vite dev`) — ignore and keep static assumptions.
         });
-      })
-      .catch(() => {
-        // Live data unavailable (e.g. running plain `vite dev`) — ignore and keep static assumptions.
-      });
+
+    load();
+    // Prices move through the trading day. Skip refreshes while the tab is in the background, and
+    // a failed refresh keeps the last good quotes rather than dropping back to averages.
+    const timer = window.setInterval(() => {
+      if (!document.hidden) load();
+    }, LIVE_REFRESH_MS);
 
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
     };
   }, [fundTickerKey]);
 
@@ -128,6 +139,10 @@ function App() {
 
   const getVolatility = (ticker: string, staticVolatility?: number) =>
     liveData[ticker]?.volatility ?? staticVolatility;
+  // A mix blends its funds' volatility, so each fund needs the same built-in fallback a single fund
+  // gets. Without it, a mix showed "n/a" and dropped off the risk chart whenever live data was down.
+  const fundVolatility = (ticker: string) =>
+    getVolatility(ticker, ETF_OPTIONS.find((f) => f.ticker === ticker)?.staticVolatility);
 
   const riskReturnPoints: RiskReturnPoint[] = useMemo(() => {
     const points: RiskReturnPoint[] = [];
@@ -137,7 +152,7 @@ function App() {
       points.push({ ticker: f.ticker, risk, returnPct: f.avgReturn * 100, highlighted: compareHighlight === f.ticker });
     }
     if (plan.mode === "portfolio") {
-      const mixRisk = computeBlendedVolatility(plan.allocations, (t) => getVolatility(t));
+      const mixRisk = computeBlendedVolatility(plan.allocations, fundVolatility);
       if (mixRisk !== undefined) {
         points.push({ ticker: "MIX", risk: mixRisk, returnPct: blendedReturn * 100, highlighted: true });
       }
@@ -190,7 +205,7 @@ function App() {
         }
       }
       const blendedExpenseRatio = knownExpenseWeight > 0 ? expenseSum / knownExpenseWeight : undefined;
-      const mixRisk = totalWeight > 0 ? computeBlendedVolatility(plan.allocations, (t) => getVolatility(t)) : undefined;
+      const mixRisk = totalWeight > 0 ? computeBlendedVolatility(plan.allocations, fundVolatility) : undefined;
 
       return {
         ticker: "MIX",
@@ -214,6 +229,7 @@ function App() {
       category: selectedFund.category,
       avgReturn: selectedFund.avgReturn,
       expenseRatio: selectedFund.expenseRatio,
+      price: resolvePrice(live, selectedFund.avgPrice),
       riskLabel: live?.riskLabel ?? selectedFund.riskLabel,
       volatility: live?.volatility ?? selectedFund.staticVolatility,
       domestic: compositionResult.composition?.domestic,
@@ -442,11 +458,15 @@ function App() {
               <RiskReturnChart points={riskReturnPoints} />
             </div>
 
-            <footer className="max-w-[80ch] px-1 pt-2 text-[13px] leading-relaxed text-ink-3">
+            <footer className="pt-2 text-[13px] leading-relaxed text-ink-3">
               <p>
                 Average annual returns are approximate, long-run historical figures for each fund and are provided for
-                educational purposes only. They are not a guarantee or prediction of future performance. This tool does
-                not account for fees, taxes, dividend reinvestment timing, or inflation, and is not financial advice.
+                educational purposes only.
+                <br />
+                They are not a guarantee or prediction of future performance.
+                <br />
+                This tool does not account for fees, taxes, dividend reinvestment timing, or inflation, and is not financial
+                advice.
               </p>
               <p className="mt-2">
                 Made by{" "}

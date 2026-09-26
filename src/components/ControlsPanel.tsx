@@ -1,7 +1,7 @@
 import { CaretDown, CaretUp, CheckCircle, MagnifyingGlass, Minus, Plus, Warning, X } from "@phosphor-icons/react";
 import { useEffect, useId, useState, type KeyboardEvent, type ReactNode } from "react";
 import { getAllFunds, DEFAULT_CUSTOM_RETURN, DEFAULT_ETF_TICKER, type CustomTicker, type EtfOption } from "../data/etfs";
-import type { LiveQuote } from "../lib/liveData";
+import { formatPrice, resolvePrice, type FundPrice, type LiveQuote } from "../lib/liveData";
 import { addFundToMix, removeFundFromMix, updateMixWeight, type AllocationEntry } from "../lib/portfolio";
 import {
   computeRequiredMonthlyContribution,
@@ -64,6 +64,21 @@ function normalizeTicker(raw: string): string {
     .toUpperCase()
     .replace(/[^A-Z.]/g, "")
     .slice(0, 6);
+}
+
+/** A fund's price for a list row. A 12-month average is marked with "~" and explained under the list. */
+function PriceText({ price }: { price: FundPrice | undefined }) {
+  if (!price) return null;
+  const isAverage = price.source === "average";
+  return (
+    <span
+      title={isAverage ? "12-month average price" : "Live price"}
+      className={`shrink-0 font-mono text-xs tabular-nums ${isAverage ? "text-ink-3" : "text-ink-2"}`}
+    >
+      {isAverage && "~"}
+      {formatPrice(price)}
+    </span>
+  );
 }
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
@@ -163,7 +178,7 @@ function AgeStepper({
       <label htmlFor={id} className={fieldLabel}>
         {label}
       </label>
-      <div className="flex h-10 items-stretch overflow-hidden rounded-lg border border-line-strong bg-panel focus-within:border-accent focus-within:ring-3 focus-within:ring-accent/20">
+      <div className="flex h-10 items-stretch overflow-hidden rounded-lg border border-line-strong bg-panel focus-within:border-focus focus-within:ring-3 focus-within:ring-focus/20">
         <button
           type="button"
           onClick={onDecrement}
@@ -213,6 +228,7 @@ function FundPicker({
   funds,
   selectedTicker,
   allTickers,
+  priceOf,
   onPick,
   onAdd,
   onRemoveCustom,
@@ -222,6 +238,7 @@ function FundPicker({
   funds: Fund[];
   selectedTicker?: string;
   allTickers: string[];
+  priceOf: (fund: Fund) => FundPrice | undefined;
   onPick: (ticker: string) => void;
   onAdd: (ticker: string) => void;
   onRemoveCustom: (ticker: string) => void;
@@ -247,6 +264,7 @@ function FundPicker({
   const visible = searching || expanded ? matches : defaultFunds;
   const hiddenCount = searching ? 0 : funds.length - defaultFunds.length;
   const canAdd = typed.length > 0 && !allTickers.includes(typed);
+  const showsAverage = visible.some((f) => priceOf(f)?.source === "average");
 
   const reset = () => {
     setQuery("");
@@ -283,7 +301,7 @@ function FundPicker({
     }
   };
 
-  const rowBase = "flex h-9 min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2 text-left hover:bg-ink/[0.05]";
+  const rowBase = "flex min-h-9 min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-ink/[0.05]";
 
   return (
     <div className="flex flex-col gap-2">
@@ -344,11 +362,19 @@ function FundPicker({
               ) : (
                 <Plus aria-hidden="true" size={14} className="shrink-0 text-ink-3" />
               )}
-              <span className={`w-12 shrink-0 font-mono text-[13px] ${selected ? "font-semibold text-ink" : "font-medium text-ink"}`}>
-                {fund.ticker}
+              {/* Two lines, like a watchlist: ticker and price, then the name and the assumed return. */}
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="flex items-baseline justify-between gap-3">
+                  <span className={`font-mono text-[13px] text-ink ${selected ? "font-semibold" : "font-medium"}`}>{fund.ticker}</span>
+                  <PriceText price={priceOf(fund)} />
+                </span>
+                <span className="flex items-baseline justify-between gap-3">
+                  <span className="min-w-0 truncate text-xs text-ink-3">{isCustom ? "Your estimate" : fund.name}</span>
+                  <span className="shrink-0 font-mono text-xs text-ink-3 tabular-nums" title="Assumed return per year">
+                    {(fund.avgReturn * 100).toFixed(1)}%/yr
+                  </span>
+                </span>
               </span>
-              <span className="min-w-0 flex-1 truncate text-[13px] text-ink-3">{isCustom ? "Your estimate" : fund.name}</span>
-              <span className="shrink-0 font-mono text-xs text-ink-2 tabular-nums">{(fund.avgReturn * 100).toFixed(1)}%</span>
             </>
           );
           return (
@@ -407,6 +433,10 @@ function FundPicker({
           <li className="px-2 py-2 text-[13px] text-ink-3">No matching funds.</li>
         )}
       </ul>
+
+      {showsAverage && (
+        <p className="text-xs text-ink-3">~ is the 12-month average price, shown where a live price isn't available.</p>
+      )}
 
       {hiddenCount > 0 && (
         <button type="button" onClick={() => setExpanded((v) => !v)} className={`${ghostButton} -ml-2 self-start`}>
@@ -530,10 +560,12 @@ export function ControlsPanel({
   };
 
   const liveCagr = selectedFund ? liveData[selectedFund.ticker]?.cagr : undefined;
+  const priceOf = (fund: Fund) => resolvePrice(liveData[fund.ticker], fund.avgPrice);
   const stepButton = `${iconButton} h-7 w-7 border border-line-strong`;
 
   return (
-    <div className="rounded-xl border border-line bg-panel">
+    // Lighter than the result cards so the one part of the page you can edit stands out as such.
+    <div className="rounded-xl border border-line bg-raised">
       <div className="px-5 pt-5">
         <h2 className="text-base font-semibold tracking-[-0.01em] text-ink">Your plan</h2>
       </div>
@@ -549,6 +581,7 @@ export function ControlsPanel({
                 funds={allFunds}
                 selectedTicker={controls.ticker}
                 allTickers={allTickers}
+                priceOf={priceOf}
                 onPick={(ticker) => update("ticker", ticker)}
                 onAdd={addCustomTicker}
                 onRemoveCustom={removeCustomTicker}
@@ -597,7 +630,10 @@ export function ControlsPanel({
                     {fundsInMix.map(({ allocation, fund }) => (
                       <li key={fund.ticker} className="py-3 first:pt-0">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="font-mono text-[13px] font-semibold text-ink">{fund.ticker}</span>
+                          <span className="flex items-baseline gap-2">
+                            <span className="font-mono text-[13px] font-semibold text-ink">{fund.ticker}</span>
+                            <PriceText price={priceOf(fund)} />
+                          </span>
                           <div className="flex items-center gap-1">
                             <span className="font-mono text-[13px] font-medium text-ink tabular-nums">
                               {allocation.weight.toFixed(0)}%
@@ -663,6 +699,7 @@ export function ControlsPanel({
                 mode="portfolio"
                 funds={fundsNotInMix}
                 allTickers={allTickers}
+                priceOf={priceOf}
                 onPick={(ticker) => update("allocations", addFundToMix(controls.allocations, ticker))}
                 onAdd={addCustomTicker}
                 onRemoveCustom={removeCustomTicker}

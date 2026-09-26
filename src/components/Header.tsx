@@ -39,6 +39,19 @@ async function prepareChartsAndPrint() {
   window.addEventListener("afterprint", restoreScroll);
 }
 
+/** The piggy bank from the favicon, so the tab icon and the header mark match. */
+function PiggyBankMark() {
+  return (
+    <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand text-on-brand">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11 17h3v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-3a3.16 3.16 0 0 0 2-2h1a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-1a5 5 0 0 0-2-4V3a4 4 0 0 0-3.2 1.6l-.3.4H11a6 6 0 0 0-6 6v1a5 5 0 0 0 2 4v3a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1z" />
+        <path d="M16 10h.01" />
+        <path d="M2 8v1a2 2 0 0 0 2 2h1" />
+      </svg>
+    </span>
+  );
+}
+
 function ExportMenu({ getSheets }: { getSheets: () => ExcelSheet[] }) {
   const [busy, setBusy] = useState<"print" | "excel" | null>(null);
 
@@ -125,11 +138,15 @@ function ThemeMenu() {
 
 export function Header({ getSheets }: { getSheets: () => ExcelSheet[] }) {
   return (
-    <header className="border-b border-line">
-      <div className="mx-auto flex h-14 max-w-[1280px] items-center justify-between gap-3 px-4 sm:px-6">
-        <div className="flex min-w-0 items-baseline gap-3">
-          <h1 className="truncate text-[15px] font-semibold tracking-[-0.01em] text-ink">Retirement Investing Dashboard</h1>
-          <p className="hidden truncate text-[13px] text-ink-3 lg:block">Model your ETF investments through retirement</p>
+    <header className="border-b border-line bg-panel">
+      <div className="mx-auto flex min-h-14 max-w-[1280px] items-center justify-between gap-3 px-4 py-2 sm:px-6">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <PiggyBankMark />
+          <div className="flex min-w-0 items-baseline gap-3">
+            {/* Wraps to two lines on phones rather than cutting off the name. */}
+            <h1 className="text-[15px] font-semibold leading-tight tracking-[-0.01em] text-ink">Retirement Investing Dashboard</h1>
+            <p className="hidden truncate text-[13px] text-ink-3 lg:block">Model your ETF investments through retirement</p>
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-0.5 print:hidden">
           <ExportMenu getSheets={getSheets} />
@@ -137,11 +154,12 @@ export function Header({ getSheets }: { getSheets: () => ExcelSheet[] }) {
             href={REPO_URL}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="View the source code on GitHub"
+            aria-label="GitHub Repo"
             title="View the source code on GitHub"
-            className={iconButton}
+            className={ghostButton}
           >
-            <GithubLogo size={18} />
+            <GithubLogo size={16} />
+            <span className="hidden sm:inline">GitHub Repo</span>
           </a>
           <ThemeMenu />
         </div>

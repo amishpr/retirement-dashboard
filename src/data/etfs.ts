@@ -13,6 +13,9 @@ export interface EtfOption {
   riskLabel?: RiskLabel;
   /** Approximate long-run annualized volatility as a decimal, used as the risk chart's fallback axis value. */
   staticVolatility?: number;
+  /** Average daily close over the 12 months to 25 Sep 2026 (Yahoo Finance), shown in place of the
+   *  price when a live quote isn't available. Refresh these now and then so they don't drift. */
+  avgPrice?: number;
 }
 
 export const ETF_OPTIONS: EtfOption[] = [
@@ -25,6 +28,7 @@ export const ETF_OPTIONS: EtfOption[] = [
     expenseRatio: 0.0003,
     riskLabel: "Medium",
     staticVolatility: 0.155,
+    avgPrice: 652.12,
   },
   {
     ticker: "SPY",
@@ -35,6 +39,7 @@ export const ETF_OPTIONS: EtfOption[] = [
     expenseRatio: 0.000945,
     riskLabel: "Medium",
     staticVolatility: 0.155,
+    avgPrice: 709.16,
   },
   {
     ticker: "VTI",
@@ -45,6 +50,7 @@ export const ETF_OPTIONS: EtfOption[] = [
     expenseRatio: 0.0003,
     riskLabel: "Medium",
     staticVolatility: 0.16,
+    avgPrice: 349.68,
   },
   {
     ticker: "VT",
@@ -55,6 +61,7 @@ export const ETF_OPTIONS: EtfOption[] = [
     expenseRatio: 0.0007,
     riskLabel: "Medium",
     staticVolatility: 0.14,
+    avgPrice: 148.47,
   },
   {
     ticker: "VXUS",
@@ -65,6 +72,7 @@ export const ETF_OPTIONS: EtfOption[] = [
     expenseRatio: 0.0005,
     riskLabel: "Medium",
     staticVolatility: 0.16,
+    avgPrice: 80.79,
   },
   {
     ticker: "QQQ",
@@ -75,6 +83,7 @@ export const ETF_OPTIONS: EtfOption[] = [
     expenseRatio: 0.002,
     riskLabel: "Medium",
     staticVolatility: 0.2,
+    avgPrice: 654.58,
   },
   {
     ticker: "SCHD",
@@ -85,6 +94,7 @@ export const ETF_OPTIONS: EtfOption[] = [
     expenseRatio: 0.0006,
     riskLabel: "Medium",
     staticVolatility: 0.148,
+    avgPrice: 30.67,
   },
   {
     ticker: "BND",
@@ -95,6 +105,7 @@ export const ETF_OPTIONS: EtfOption[] = [
     expenseRatio: 0.0003,
     riskLabel: "Low",
     staticVolatility: 0.065,
+    avgPrice: 73.56,
   },
   {
     ticker: "AGG",
@@ -105,6 +116,7 @@ export const ETF_OPTIONS: EtfOption[] = [
     expenseRatio: 0.0003,
     riskLabel: "Low",
     staticVolatility: 0.065,
+    avgPrice: 99.18,
   },
   {
     ticker: "SPLV",
@@ -115,6 +127,7 @@ export const ETF_OPTIONS: EtfOption[] = [
     expenseRatio: 0.0025,
     riskLabel: "Medium",
     staticVolatility: 0.126,
+    avgPrice: 73.70,
   },
 ];
 

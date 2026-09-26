@@ -15,7 +15,7 @@ export const outlineButton =
 
 /** Bordered text-field wrapper; the input inside it is borderless and transparent. */
 export const fieldShell =
-  "flex h-10 items-center gap-2 rounded-lg border border-line-strong bg-panel px-3 hover:border-ink-3 focus-within:border-accent focus-within:ring-3 focus-within:ring-accent/20";
+  "flex h-10 items-center gap-2 rounded-lg border border-line-strong bg-panel px-3 hover:border-ink-3 focus-within:border-focus focus-within:ring-3 focus-within:ring-focus/20";
 
 /** Small label that sits above a control. */
 export const fieldLabel = "text-[13px] font-medium text-ink-2";

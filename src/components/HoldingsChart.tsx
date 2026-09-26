@@ -45,6 +45,7 @@ export const HoldingsChart = memo(function HoldingsChart({
     >
       <RankedBars
         label={`Top ${shown} holdings by weight`}
+        barClass="bg-holdings"
         rows={composition.topHoldings.map((h) => ({
           key: h.name,
           label: h.name,

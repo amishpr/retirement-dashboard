@@ -27,8 +27,9 @@ export const bandCursor = { fill: "var(--ink)", fillOpacity: 0.04 };
 
 const trimZero = (n: number) => Number(n.toFixed(1)).toString();
 
-/** Compact money for axis ticks: $0, $350K, $1.4M, never "$0.0" or "$350.0K". */
+/** Compact money for axis ticks: $0, $350K, $1.4M, -$2K, never "$0.0" or "$-2K". */
 export function formatAxisMoney(value: number): string {
+  if (value < 0) return `-${formatAxisMoney(-value)}`;
   const abs = Math.abs(value);
   if (abs >= 1e9) return `$${trimZero(value / 1e9)}B`;
   if (abs >= 1e6) return `$${trimZero(value / 1e6)}M`;
@@ -46,6 +47,18 @@ export function niceTicks(max: number, target = 4): number[] {
   const step = [1, 2, 2.5, 5, 10].map((m) => m * pow).find((s) => s >= raw) ?? raw;
   const count = Math.ceil(max / step - 1e-9);
   return Array.from({ length: count + 1 }, (_, i) => Number((i * step).toPrecision(12)));
+}
+
+/** Like niceTicks, for data that can dip below zero: round-number ticks covering min..max, always
+ *  including 0 so bars keep a real baseline. */
+export function niceTicksRange(min: number, max: number, target = 4): number[] {
+  const lo = Math.min(0, min);
+  const hi = Math.max(0, max);
+  if (!(hi - lo > 0)) return [0];
+  const step = niceTicks(hi - lo, target)[1];
+  const first = Math.floor(lo / step + 1e-9);
+  const last = Math.ceil(hi / step - 1e-9);
+  return Array.from({ length: last - first + 1 }, (_, i) => Number(((first + i) * step).toPrecision(12)));
 }
 
 /** How long a chart's one-time draw-in takes. */
