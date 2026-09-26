@@ -7,11 +7,15 @@ balance forward with charts covering growth, risk, holdings, sector exposure, an
 is also a goal mode that works backward: tell it the retirement income you want, and it solves
 for the contribution you would need to get there.
 
-![The dashboard projecting a VT position from age 30 to 65: plan controls on the left, the projected balance and its contributions versus growth split, and the projection chart on the right](docs/screenshot.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot.png">
+  <img alt="The dashboard projecting a VT position from age 30 to 65: plan controls with live fund prices on the left; on the right, the projected balance split into contributions and growth, the projection chart, the fund overview, and its top holdings and sectors" src="docs/screenshot-light.png">
+</picture>
 
 Everything runs in the browser using built in historical return assumptions by default. When
-deployed on Netlify, or run locally with the Netlify CLI, the app also pulls a real trailing
-five year return and volatility for any ticker you type in, through a small serverless function.
+deployed on Netlify, or run locally with the Netlify CLI, the app also pulls live prices, plus a
+real trailing five year return and volatility for any ticker you type in, through a small
+serverless function.
 
 ## Features
 
@@ -24,6 +28,8 @@ five year return and volatility for any ticker you type in, through a small serv
 - Switch to goal mode and enter a desired annual retirement income instead. The app solves for
   the contribution needed to reach it
 - Five year return and volatility lookup for any ticker, when live data is available
+- Live price for each fund, refreshed every five minutes, with a 12 month average price shown
+  instead when a live quote isn't available
 - One projection card with four views: the balance split into contributions and market growth,
   a lower to higher return range, a bar chart of yearly gains, and a full year by year table
 - Risk versus return scatter plot, with a table view that lists each fund's volatility and risk
@@ -56,8 +62,8 @@ five year return and volatility for any ticker you type in, through a small serv
 ```
 .github/workflows/deploy-pages.yml  Builds and publishes the GitHub Pages mirror
 .vscode/                     Tasks and Chrome debug configs
-docs/screenshot.png          The README screenshot (not shipped with the site)
-netlify/functions/finance.mts Serverless proxy for live returns and volatility
+docs/screenshot*.png         The README screenshots, dark and light (not shipped with the site)
+netlify/functions/finance.mts Serverless proxy for live prices, returns, and volatility
 netlify.toml                 Netlify build, dev, and redirect settings
 404.html                     Not-found page, built as a second Vite entry so its links follow `base`
 vite.config.ts               Vite config (dev server is pinned to port 5183)
@@ -66,7 +72,7 @@ src/
   main.tsx                   React entry point
   index.css                  Design tokens (one light-dark() set), Tailwind theme mapping, and global styles
   components/
-    Header.tsx               Title, Export menu (print to PDF, Excel report), GitHub link, theme menu
+    Header.tsx               Logo and title, Export menu (print to PDF, Excel report), GitHub Repo link, theme menu
     SummaryHero.tsx          Projected balance, retirement income, and the contributions versus growth split
     MobileBalanceBar.tsx     Keeps the projected balance in view on phones while you edit the plan
     ControlsPanel.tsx        The "Your plan" sidebar: fund search, mix builder, ages, contributions, goal mode
@@ -135,7 +141,13 @@ The `.vscode/` folder has task and debug configs for this project.
 `netlify/functions/finance.mts` proxies Yahoo Finance's chart endpoint so the browser can get a
 real five year CAGR for any ticker without running into CORS restrictions or needing an API key.
 It also computes an annualized volatility figure from the same price history, and returns the
-latest price, which the interface does not currently show.
+latest price along with a 12 month average price.
+
+The plan panel and the fund card show the live price and refresh it every five minutes. When
+there's no live quote, they show a 12 month average instead, marked with "~" in the fund list.
+That average comes from the function when it's reachable, and otherwise from the `avgPrice`
+figures built into `src/data/etfs.ts`, which are dated in a comment there and worth refreshing
+now and then.
 
 This is an unofficial, undocumented endpoint. It can change or start rate limiting without
 notice. That is an acceptable tradeoff for a personal project, since it needs no signup and no
@@ -203,14 +215,18 @@ ignore them anyway.
 
 ## Theming
 
-All colors live in `src/index.css` as CSS custom properties, with separate values for light
-mode, dark mode, and print. Components read the variables, so changing a color is a one line
-edit. Printing always uses the light values, whichever theme is active on screen.
+All colors live in `src/index.css` as CSS custom properties. Each one is a light and dark pair,
+so the page follows the system theme or the one picked in the header menu. Components read the
+variables, so changing a color is a one line edit. Printing always uses the light values,
+whichever theme is active on screen.
 
-The three chart series colors (navy for contributions, green for growth, and teal for the
-accent series) were checked for colorblind separation and for contrast against the white card
-background, and the light theme values were picked to pass those checks. The Your Plan panel has
-its own color, `--plan-accent`, so the one area you can edit is not mistaken for a chart series.
+Both themes are [Nord](https://www.nordtheme.com/docs/colors-and-palettes), and the charts use
+Nord's own colors: Frost blue (nord8) for money you put in, Aurora green (nord14) for market
+growth and your selected fund, and the other Frost blues (nord7 and nord9) for top holdings and
+sectors. A losing year shows in red, the same color as the highest risk level, and yellow is kept
+for the medium risk level only. The dark theme uses the exact Nord values. The light theme uses
+the same colors one small step darker, so they stay soft but still show up against the light
+cards. Keyboard focus rings use Nord's main UI blue.
 
 ## Performance
 

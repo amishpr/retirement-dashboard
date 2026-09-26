@@ -11,12 +11,18 @@
    step between the two families, needed because nord3 is too dark to read on nord1 and the
    Snow Storm grays are too light to read on nord6.
 
-   Chart colors keep Nord's hues but not its exact hexes: contrib is the Frost blue (nord10's hue)
-   and accent is the Aurora green (nord14's hue), each re-stepped in lightness and chroma until the
-   pair passes a palette check (lightness band, chroma floor, colorblind separation,
-   contrast) against `panel` in both themes. Nord's own accents are too pastel to pass: they read
-   as gray next to the neutral bars. `contrib` means "money you put in" and nothing else; `accent`
-   means "market growth" or "your selection" and nothing else. */
+   Chart colors are Nord's own. Dark uses the exact hexes: Frost nord8 for `contrib`, Aurora nord14
+   for `accent`, and Frost nord7 and nord9 for `holdings` and `sectors`. Light uses the same hues a
+   small step darker (about 0.07 OKLCH lightness, Nord's low chroma kept), because the exact pastels
+   sit under 2:1 on Snow Storm; deeper, more saturated steps were tried and read as muddy. The blue
+   and green sit close in lightness in both themes, so the charts that stack them lean on a 2px gap,
+   different fill strengths, a legend, and a table view to keep them apart.
+
+   Every chart color means one thing: `contrib` is "money you put in", `accent` is "market growth"
+   or "your selection", `holdings` and `sectors` color only their own cards, and a loss wears
+   `--status-critical`. Yellow (nord13) stays reserved for the warning status. Keyboard focus uses
+   `focus`, Nord's primary UI accent (nord8, or nord10 on light), since the pastel green is too
+   faint for a focus ring on the light theme. */
 :root {
   color-scheme: light dark;
   --page: light-dark(#e5e9f0, #2e3440);
@@ -27,11 +33,16 @@
   --raised: light-dark(#f8f9fb, #434c5e);
   --line: light-dark(rgb(46 52 64 / 0.12), rgb(216 222 233 / 0.1));
   --line-strong: light-dark(rgb(46 52 64 / 0.24), rgb(216 222 233 / 0.2));
+  /* The white outline grid behind the page. Kept faint so it never competes with chart gridlines. */
+  --grid-line: light-dark(rgb(255 255 255 / 0.8), rgb(236 239 244 / 0.06));
   --ink: light-dark(#2e3440, #eceff4);
   --ink-2: light-dark(#434c5e, #d8dee9);
   --ink-3: light-dark(#566074, #a7b1c2);
-  --accent: light-dark(#587b32, #7ca159);
-  --contrib: light-dark(#3e6aa4, #6694d2);
+  --accent: light-dark(#8ca973, #a3be8c);
+  --contrib: light-dark(#6eabbc, #88c0d0);
+  --holdings: light-dark(#76a7a6, #8fbcbb);
+  --sectors: light-dark(#6a8cad, #81a1c1);
+  --focus: light-dark(#5e81ac, #88c0d0);
   /* Status is a fixed, reserved scale, shown as an icon next to an ink label, never as a fill or
      text color, and never reused as a categorical series color. Dark uses Nord's Aurora colors
      (nord14, nord13, nord12, and nord11 lifted slightly to reach 3:1 on the panel); light uses
@@ -43,6 +54,11 @@
   --elevation:
     0 1px 2px light-dark(rgb(46 52 64 / 0.08), rgb(22 26 33 / 0.35)),
     0 12px 28px -10px light-dark(rgb(46 52 64 / 0.22), rgb(22 26 33 / 0.6));
+  /* The piggy bank mark in the header and the favicons: a white outline pig on a Polar Night tile
+     (nord0). The same in both themes, like the favicon it has to match. nord0 rather than nord1,
+     because nord1 is the dark header's own background and the tile would disappear into it. */
+  --brand: #2e3440;
+  --on-brand: #ffffff;
 }
 
 :root[data-theme="light"] {
@@ -62,11 +78,15 @@
     --raised: #f8f9fb;
     --line: rgb(46 52 64 / 0.12);
     --line-strong: rgb(46 52 64 / 0.24);
+    --grid-line: rgb(255 255 255 / 0.8);
     --ink: #2e3440;
     --ink-2: #434c5e;
     --ink-3: #566074;
-    --accent: #587b32;
-    --contrib: #3e6aa4;
+    --accent: #8ca973;
+    --contrib: #6eabbc;
+    --holdings: #76a7a6;
+    --sectors: #6a8cad;
+    --focus: #5e81ac;
     --status-good: #4e8841;
     --status-warning: #a1790c;
     --status-serious: #be6438;
@@ -87,6 +107,11 @@
   --color-ink-3: var(--ink-3);
   --color-accent: var(--accent);
   --color-contrib: var(--contrib);
+  --color-holdings: var(--holdings);
+  --color-sectors: var(--sectors);
+  --color-focus: var(--focus);
+  --color-brand: var(--brand);
+  --color-on-brand: var(--on-brand);
   --shadow-float: var(--elevation);
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
@@ -100,7 +125,11 @@ html {
 
 body {
   margin: 0;
-  background: var(--page);
+  background-color: var(--page);
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 40px 40px;
   color: var(--ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -111,14 +140,18 @@ body {
   background: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
-h1,
-h2,
-h3 {
-  text-wrap: balance;
-}
+/* In the base layer so utilities win: unlayered, these beat Tailwind's `truncate` (text-wrap resets
+   the nowrap it relies on), and truncated text wrapped instead. */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
 
-p {
-  text-wrap: pretty;
+  p {
+    text-wrap: pretty;
+  }
 }
 
 .tabular {
@@ -167,7 +200,7 @@ a[href]:active {
 /* Keyboard focus: a clear accent ring for tabbing, never shown on mouse clicks. Text fields show
    focus on their bordered wrapper instead (focus-within classes on the component). */
 :where(button, a[href], select, [role="button"], [role="radio"], [role="menuitem"], [role="menuitemradio"], input[type="range"]):focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -208,6 +241,10 @@ input[type="range"] {
   * {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
+  }
+
+  body {
+    background-image: none;
   }
 
   /* The app's max-width container is sized for a wide desktop screen — on a printed page that's
