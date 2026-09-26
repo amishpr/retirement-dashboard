@@ -73,9 +73,9 @@ and for the numbers that count up when an input changes. Its motion values updat
 directly instead of re-rendering the React component on every frame, so a counting number stays
 cheap even while other parts of the page are busy.
 
-**lucide-react.** A clean, consistent icon set with a small footprint. Used throughout for
-things like the plus and minus buttons on the age stepper, the print icon, and the piggy bank
-mark used both in the header and as the site's favicon.
+**Phosphor.** A consistent icon set with a small footprint and one stroke weight across every
+glyph, including brand marks like GitHub. Used for things like the plus and minus buttons on the
+age stepper, the Export menu, and the risk tier icons.
 
 **ExcelJS.** Needed for the "download as a spreadsheet" feature, which produces a real multi
 sheet .xlsx file rather than a single flat CSV. An earlier attempt used the more commonly known
@@ -101,8 +101,7 @@ browser.
 All of the user's inputs live in one `Controls` object held in `App.tsx` with a single
 `useState`. The Your Plan panel receives that object and a setter, so it is a fully controlled
 component and there is no second copy of the inputs to keep in sync. Everything else is derived
-from it. The blended return, the growth projection, the scenario range, the candlestick data,
-the risk points, and the composition breakdowns are all computed with `useMemo` in `App`, then
+from it. The blended return, the growth projection, the scenario range, the risk points, and the composition breakdowns are all computed with `useMemo` in `App`, then
 passed down as plain props to charts that only know how to draw what they are given.
 
 That structure keeps the math separate from the drawing, which makes the math easy to check and
@@ -172,16 +171,23 @@ timeout on the upstream fetch, since it is proxying an undocumented third party 
 was never meant to be called this way. It also computes an annualized volatility figure from the
 monthly price history, which feeds directly into the risk versus return chart.
 
+Prices follow the same rule. The app shows each fund's live price and refreshes it every five
+minutes, which matches how long the function's responses are cached. If a quote is missing, it
+falls back to a 12 month average price, first from the function and then from figures built into
+the fund list. That way the preset funds always show a price, and the fund list marks an average
+with "~" so it's never mistaken for a live quote.
+
 ## Choosing the right chart for each piece of data
 
 Each chart type was picked to match the kind of comparison it needs to support, rather than
 defaulting to whatever looked good. A line and area chart carries the main growth projection
 because the primary question there is how a single value changes over time. A scatter plot
 handles risk versus return because the point is to compare two independent measurements across
-several funds at once. Donut charts are used for holdings, sector, and geography, since those
-are all about how a whole breaks into parts. Bar charts appear anywhere a straightforward
-side by side comparison is more useful than a trend line, such as comparing volatility or yearly
-growth across funds.
+several funds at once. Holdings, sectors, and the fund comparison are ranked horizontal bars
+with the value printed on every row, because the question there is which items are biggest and
+by how much, and a bar length is easier to compare than a slice angle. Two part splits, like
+contributions versus growth or US versus international, are a single split bar. A bar chart
+carries yearly growth, where each year is its own amount rather than a point on a trend.
 
 Color is treated the same way. Categorical colors, like each fund's slice in a chart, series
 colors, like contributions versus growth, and status colors, like a risk level of low, medium,
@@ -196,8 +202,16 @@ white card background, instead of judged by eye. That turned up something surpri
 green, and teal all sit in the cool half of the color wheel, and the teal gets squeezed between
 the other two. Making it greener made it collide with the green, and making it bluer made it
 collide with the navy. What worked was spreading the colors apart in lightness as well as hue.
-The Your Plan panel uses its own accent color, kept out of the series colors on purpose, so the
-one area users can edit is not confused with a data series.
+
+The same thing came up again when the charts moved to Nord's own colors: Frost blue for
+contributions, Aurora green for growth, and two more Frost blues for the holdings and sectors
+cards, which had been plain gray. Nord's blue and green are almost exactly the same lightness, so
+they sit closer together than the check allows. The charts keep the Nord values anyway and
+separate the two layers of the balance chart with different fill strengths, a small gap, a
+legend, and a table view. On the light theme, darker and more saturated versions that passed
+every check were tried first, but they looked muddy next to the rest of Nord, so the light theme
+uses the same colors only one small step darker instead. The Your Plan panel sits on a lighter surface than the result cards, so
+the one area users can edit is not confused with the results.
 
 ## Making it feel fast
 

@@ -1,5 +1,6 @@
-import { Download } from "lucide-react";
+import { DownloadSimple } from "@phosphor-icons/react";
 import { downloadCSV } from "../lib/download";
+import { iconButton } from "../lib/ui";
 
 export function DownloadCsvButton({
   filename,
@@ -14,11 +15,9 @@ export function DownloadCsvButton({
       onClick={() => downloadCSV(filename, getRows())}
       aria-label="Download this chart's data as CSV"
       title="Download CSV"
-      className="print:hidden flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors"
-      style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+      className={`${iconButton} print:hidden`}
     >
-      <Download size={14} />
-      CSV
+      <DownloadSimple size={18} />
     </button>
   );
 }

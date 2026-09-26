@@ -4,6 +4,8 @@ export interface LiveQuote {
   symbol: string;
   ok: boolean;
   price?: number;
+  /** Average monthly close over the last 12 months. */
+  avgPrice?: number;
   currency?: string;
   name?: string;
   cagr?: number;
@@ -39,4 +41,48 @@ export async function fetchLiveQuotes(
   }
   const data = (await res.json()) as { results?: LiveQuote[] };
   return data.results ?? [];
+}
+
+/** A fund's price and where it came from: a live quote, or a 12-month average when there's none. */
+export interface FundPrice {
+  value: number;
+  source: "live" | "average";
+  currency: string;
+}
+
+/**
+ * Picks the best price available: the live quote, then the 12-month average the proxy computed,
+ * then the built-in average for preset funds (which is all there is when the proxy can't be
+ * reached). Custom tickers have no built-in average, so they show no price until a quote arrives.
+ */
+export function resolvePrice(live: LiveQuote | undefined, fallbackAvg: number | undefined): FundPrice | undefined {
+  const [currency, scale] = MINOR_UNITS[live?.currency ?? ""] ?? [live?.currency ?? "USD", 1];
+  if (live?.price !== undefined) return { value: live.price / scale, source: "live", currency };
+  const avg = live?.avgPrice !== undefined ? live.avgPrice / scale : fallbackAvg;
+  return avg !== undefined ? { value: avg, source: "average", currency } : undefined;
+}
+
+/** Yahoo quotes some exchanges in the minor unit (London in pence as "GBp"). Intl reads currency
+ *  codes case-insensitively, so "GBp" would print pence as pounds, 100 times too high. */
+const MINOR_UNITS: Record<string, [currency: string, perUnit: number]> = {
+  GBp: ["GBP", 100],
+  ZAc: ["ZAR", 100],
+  ILA: ["ILS", 100],
+};
+
+const priceFormatters = new Map<string, Intl.NumberFormat>();
+
+/** "$710.79", or "CA$42.10" for a ticker quoted in another currency. */
+export function formatPrice(price: FundPrice): string {
+  let formatter = priceFormatters.get(price.currency);
+  if (!formatter) {
+    try {
+      formatter = new Intl.NumberFormat("en-US", { style: "currency", currency: price.currency });
+    } catch {
+      // An unexpected currency code from upstream: show the plain number rather than throw.
+      formatter = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    priceFormatters.set(price.currency, formatter);
+  }
+  return formatter.format(price.value);
 }

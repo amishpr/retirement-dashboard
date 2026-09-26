@@ -160,3 +160,16 @@ export function formatCompact(value: number): string {
 export function formatAdaptiveCurrency(value: number): string {
   return Math.abs(value) >= 1_000_000 ? formatCompact(value) : currencyFormatter.format(value);
 }
+
+export interface YearlyGrowthPoint {
+  age: number;
+  yearlyGrowth: number;
+}
+
+/** Market growth added in each year of a projection, excluding that year's new contributions. */
+export function buildYearlyGrowth(data: YearPoint[]): YearlyGrowthPoint[] {
+  return data.slice(1).map((point, i) => ({
+    age: point.age,
+    yearlyGrowth: point.growth - data[i].growth,
+  }));
+}

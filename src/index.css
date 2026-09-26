@@ -1,120 +1,157 @@
 @import "tailwindcss";
 
+/* Design tokens. One set, resolved per theme by light-dark(): the page follows the OS by default,
+   and `data-theme` pins it when someone picks a theme from the header menu. Printing forces the
+   light side (see the print block at the bottom), so there's no separate print palette to keep in
+   sync.
+
+   Both themes are Nord (nordtheme.com). Dark is Nord proper: Polar Night surfaces (nord0-2) with
+   Snow Storm text (nord4, nord6). Light is the Nord Light arrangement: Snow Storm surfaces
+   (nord4-6) with Polar Night text (nord0, nord2). The one non-palette gray, ink-3, is a Nord-hued
+   step between the two families, needed because nord3 is too dark to read on nord1 and the
+   Snow Storm grays are too light to read on nord6.
+
+   Chart colors are Nord's own. Dark uses the exact hexes: Frost nord8 for `contrib`, Aurora nord14
+   for `accent`, and Frost nord7 and nord9 for `holdings` and `sectors`. Light uses the same hues a
+   small step darker (about 0.07 OKLCH lightness, Nord's low chroma kept), because the exact pastels
+   sit under 2:1 on Snow Storm; deeper, more saturated steps were tried and read as muddy. The blue
+   and green sit close in lightness in both themes, so the charts that stack them lean on a 2px gap,
+   different fill strengths, a legend, and a table view to keep them apart.
+
+   Every chart color means one thing: `contrib` is "money you put in", `accent` is "market growth"
+   or "your selection", `holdings` and `sectors` color only their own cards, and a loss wears
+   `--status-critical`. Yellow (nord13) stays reserved for the warning status. Keyboard focus uses
+   `focus`, Nord's primary UI accent (nord8, or nord10 on light), since the pastel green is too
+   faint for a focus ring on the light theme. */
 :root {
+  color-scheme: light dark;
+  --page: light-dark(#e5e9f0, #2e3440);
+  --panel: light-dark(#eceff4, #3b4252);
+  /* A recessed well (segmented-control track, table header) and a raised chip (the selected
+     segment). */
+  --sunken: light-dark(#d8dee9, #2e3440);
+  --raised: light-dark(#f8f9fb, #434c5e);
+  --line: light-dark(rgb(46 52 64 / 0.12), rgb(216 222 233 / 0.1));
+  --line-strong: light-dark(rgb(46 52 64 / 0.24), rgb(216 222 233 / 0.2));
+  /* The white outline grid behind the page. Kept faint so it never competes with chart gridlines. */
+  --grid-line: light-dark(rgb(255 255 255 / 0.8), rgb(236 239 244 / 0.06));
+  --ink: light-dark(#2e3440, #eceff4);
+  --ink-2: light-dark(#434c5e, #d8dee9);
+  --ink-3: light-dark(#566074, #a7b1c2);
+  --accent: light-dark(#8ca973, #a3be8c);
+  --contrib: light-dark(#6eabbc, #88c0d0);
+  --holdings: light-dark(#76a7a6, #8fbcbb);
+  --sectors: light-dark(#6a8cad, #81a1c1);
+  --focus: light-dark(#5e81ac, #88c0d0);
+  /* Status is a fixed, reserved scale, shown as an icon next to an ink label, never as a fill or
+     text color, and never reused as a categorical series color. Dark uses Nord's Aurora colors
+     (nord14, nord13, nord12, and nord11 lifted slightly to reach 3:1 on the panel); light uses
+     darker steps of the same hues so the icons stay visible on Snow Storm. */
+  --status-good: light-dark(#4e8841, #a3be8c);
+  --status-warning: light-dark(#a1790c, #ebcb8b);
+  --status-serious: light-dark(#be6438, #d08770);
+  --status-critical: light-dark(#bf616a, #d17279);
+  --elevation:
+    0 1px 2px light-dark(rgb(46 52 64 / 0.08), rgb(22 26 33 / 0.35)),
+    0 12px 28px -10px light-dark(rgb(46 52 64 / 0.22), rgb(22 26 33 / 0.6));
+  /* The piggy bank mark in the header and the favicons: a white outline pig on a Polar Night tile
+     (nord0). The same in both themes, like the favicon it has to match. nord0 rather than nord1,
+     because nord1 is the dark header's own background and the tile would disappear into it. */
+  --brand: #2e3440;
+  --on-brand: #ffffff;
+}
+
+:root[data-theme="light"] {
   color-scheme: light;
-  --surface-1: #fcfcfb;
-  --surface-2: #f9f9f7;
-  --surface-card: #ffffff;
-  --text-primary: #0b0b0b;
-  --text-secondary: #52514e;
-  --text-muted: #898781;
-  --gridline: #e1e0d9;
-  --baseline: #c3c2b7;
-  --border: rgba(11, 11, 11, 0.1);
-  --series-contrib: #2e5090;
-  --series-growth: #0d8a4a;
-  --series-accent: #1499c4;
-  /* The inputs panel's own color. Deliberately not one of the series colors: it marks the one
-     region of the page you can edit, so it shouldn't read as a data series. Checked at 5.4:1 on
-     white, so the active control labels that wear it stay legible. */
-  --plan-accent: #0e7490;
-  --success-text: #006300;
-  /* Status is a fixed, reserved scale — same hex in both themes, never cycled with the categorical series. */
-  --status-good: #0ca30c;
-  --status-warning: #fab219;
-  --status-serious: #ec835a;
-  --status-critical: #d03b3b;
-  --bg-grid-line: rgba(255, 255, 255, 0.8);
-  /* Extended categorical set for the 10-slot holdings pie. Beyond ~3 slots a pie's colorblind-safety
-     can't be fully validated (see palette all-pairs limits) — these are a best-effort spread, not
-     a guarantee, which is why every slice also carries a direct label + legend as backup. */
-  --chart-4: #c2622d;
-  --chart-5: #b23a3a;
-  --chart-6: #6b4a9e;
-  --chart-7: #8a4a1f;
-  --chart-8: #b23a7a;
-  --chart-9: #7a8a1f;
-  --chart-10: #4a5570;
-  --shadow-card: 0 1px 2px rgba(11, 11, 11, 0.04), 0 8px 24px -12px rgba(11, 11, 11, 0.12);
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --surface-1: #0f1729;
-  --surface-2: #0a0f1c;
-  --surface-card: #141d33;
-  --text-primary: #ffffff;
-  --text-secondary: #b8c2d9;
-  --text-muted: #7c8aa8;
-  --gridline: #26304d;
-  --baseline: #3d4a6b;
-  --border: rgba(255, 255, 255, 0.1);
-  --series-contrib: #5b8ad6;
-  --series-growth: #2fae73;
-  --series-accent: #157a9e;
-  --plan-accent: #2ab0d4;
-  --success-text: #0ca30c;
-  --bg-grid-line: rgba(255, 255, 255, 0.06);
-  --chart-4: #e08a52;
-  --chart-5: #d9645f;
-  --chart-6: #9a7fc9;
-  --chart-7: #c17d3f;
-  --chart-8: #d968a3;
-  --chart-9: #a8bb3f;
-  --chart-10: #7986a8;
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.2), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --surface-1: #0f1729;
-    --surface-2: #0a0f1c;
-    --surface-card: #141d33;
-    --text-primary: #ffffff;
-    --text-secondary: #b8c2d9;
-    --text-muted: #7c8aa8;
-    --gridline: #26304d;
-    --baseline: #3d4a6b;
-    --border: rgba(255, 255, 255, 0.1);
-    --series-contrib: #5b8ad6;
-    --series-growth: #2fae73;
-    --series-accent: #157a9e;
-    --plan-accent: #2ab0d4;
-    --success-text: #0ca30c;
-    --bg-grid-line: rgba(255, 255, 255, 0.06);
-    --chart-4: #e08a52;
-    --chart-5: #d9645f;
-    --chart-6: #9a7fc9;
-    --chart-7: #c17d3f;
-    --chart-8: #d968a3;
-    --chart-9: #a8bb3f;
-    --chart-10: #7986a8;
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.2), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+/* Browsers without light-dark() (Safari before 17.5) get the light theme rather than no colors. */
+@supports not (color: light-dark(#000, #fff)) {
+  :root {
+    --page: #e5e9f0;
+    --panel: #eceff4;
+    --sunken: #d8dee9;
+    --raised: #f8f9fb;
+    --line: rgb(46 52 64 / 0.12);
+    --line-strong: rgb(46 52 64 / 0.24);
+    --grid-line: rgb(255 255 255 / 0.8);
+    --ink: #2e3440;
+    --ink-2: #434c5e;
+    --ink-3: #566074;
+    --accent: #8ca973;
+    --contrib: #6eabbc;
+    --holdings: #76a7a6;
+    --sectors: #6a8cad;
+    --focus: #5e81ac;
+    --status-good: #4e8841;
+    --status-warning: #a1790c;
+    --status-serious: #be6438;
+    --status-critical: #bf616a;
+    --elevation: 0 1px 2px rgb(46 52 64 / 0.08), 0 12px 28px -10px rgb(46 52 64 / 0.22);
   }
 }
 
-* {
-  box-sizing: border-box;
+@theme inline {
+  --color-page: var(--page);
+  --color-panel: var(--panel);
+  --color-sunken: var(--sunken);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-contrib: var(--contrib);
+  --color-holdings: var(--holdings);
+  --color-sectors: var(--sectors);
+  --color-focus: var(--focus);
+  --color-brand: var(--brand);
+  --color-on-brand: var(--on-brand);
+  --shadow-float: var(--elevation);
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
 }
 
-html,
-body,
-#root {
-  height: 100%;
+/* z-index scale: 10 = mobile sticky summary bar, 20 = menus and popovers. */
+
+html {
+  background: var(--page);
 }
 
 body {
   margin: 0;
-  background: var(--surface-2);
-  color: var(--text-primary);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background-color: var(--page);
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 40px 40px;
+  color: var(--ink);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 ::selection {
-  background: var(--series-contrib);
-  color: white;
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+/* In the base layer so utilities win: unlayered, these beat Tailwind's `truncate` (text-wrap resets
+   the nowrap it relies on), and truncated text wrapped instead. */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
 }
 
 .tabular {
@@ -131,34 +168,21 @@ body {
   margin: 0;
 }
 
-/* Interaction feedback for every clickable/editable control. Components set their colors inline
-   (active-vs-idle tints, accent borders), and inline styles beat any stylesheet rule — so instead of
-   swapping those colors, hover/press are layered on with `box-shadow`, which nothing sets inline:
-   one inset shadow tints the whole face, a second draws a 1px ring just inside the existing border
-   to firm up its edge. Both are mixed from `currentColor`, so each control highlights in its own
-   text/accent color and reads correctly in either theme.
-
-   `outline` is deliberately reserved for :focus-visible and never used for hover. Its initial color
-   is `currentcolor`, so animating outline-color across a state that also flips outline-style from
-   `none` to `solid` flashes the full-strength text color for a frame before settling — box-shadow
-   starts from `none` and interpolates out of transparent, with no such flash. For the same reason
-   outline-color is kept out of the transition list below. */
 button:not(:disabled),
 a[href],
 select,
 [role="button"],
+[role="radio"],
 input[type="range"] {
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
-button:not(:disabled),
+button,
 a[href],
 select,
-[role="button"],
-input:not([type="range"]),
-div:has(> input:not([type="range"])) {
+input {
   transition:
     color 150ms ease,
     background-color 150ms ease,
@@ -167,82 +191,31 @@ div:has(> input:not([type="range"])) {
     transform 100ms ease;
 }
 
-/* Hover only where a real pointer exists, so touch screens don't leave a control stuck highlighted
-   after a tap. The :has() guard keeps a card from lighting up while its nested remove (×) button is
-   the thing actually under the pointer. */
-@media (hover: hover) {
-  button:not(:disabled):hover:not(:has([role="button"]:hover)),
-  a[href][class~="border"]:hover,
-  [role="button"]:hover {
-    box-shadow:
-      inset 0 0 0 1px color-mix(in srgb, currentColor 28%, transparent),
-      inset 0 0 0 999px color-mix(in srgb, currentColor 7%, transparent);
-  }
-
-  a[href]:not([class~="border"]):hover {
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-
-  select:hover,
-  input[class~="border"]:hover {
-    border-color: color-mix(in srgb, var(--plan-accent) 55%, var(--border));
-  }
-
-  /* The inputs sit inside a bordered wrapper (with a "$" prefix), so highlight the wrapper. */
-  div:has(> input:not([type="range"]):hover):not(:has(> button)) {
-    border-color: color-mix(in srgb, var(--plan-accent) 55%, var(--border)) !important;
-  }
+/* A physical press on anything clickable. Hover colors live on each component as utility classes. */
+button:not(:disabled):not([role="radio"]):active,
+a[href]:active {
+  transform: scale(0.97);
 }
 
-button:not(:disabled):active,
-a[href][class~="border"]:active,
-[role="button"]:active {
-  transform: scale(0.98);
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, currentColor 38%, transparent),
-    inset 0 0 0 999px color-mix(in srgb, currentColor 14%, transparent);
+/* Keyboard focus: a clear accent ring for tabbing, never shown on mouse clicks. Text fields show
+   focus on their bordered wrapper instead (focus-within classes on the component). */
+:where(button, a[href], select, [role="button"], [role="radio"], [role="menuitem"], [role="menuitemradio"], input[type="range"]):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
-/* Keyboard focus: a clear ring for tabbing, without showing on mouse clicks for buttons. Text
-   fields and dropdowns also get it on click, since that's how you know where you're typing. */
-button:focus-visible,
-a[href]:focus-visible,
-select:focus-visible,
-[role="button"]:focus-visible,
-input[type="range"]:focus-visible {
-  outline: 2px solid var(--plan-accent) !important;
-  outline-offset: 2px !important;
-}
-
-select:focus,
-input[class~="border"]:focus {
-  border-color: var(--plan-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--plan-accent) 22%, transparent);
-}
-
-div:has(> input:not([type="range"]):focus):not(:has(> button)) {
-  border-color: var(--plan-accent) !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--plan-accent) 22%, transparent);
+input[type="range"] {
+  accent-color: var(--accent);
 }
 
 @media (prefers-reduced-motion: reduce) {
   button:not(:disabled):active,
-  a[href][class~="border"]:active,
-  [role="button"]:active {
+  a[href]:active {
     transform: none;
   }
   * {
     transition-duration: 0.01ms !important;
   }
-}
-
-.bg-grid {
-  background-color: var(--surface-2);
-  background-image:
-    linear-gradient(var(--bg-grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--bg-grid-line) 1px, transparent 1px);
-  background-size: 40px 40px;
 }
 
 /* Landscape gives charts meaningfully more width to work with than portrait Letter/A4 — this must
@@ -253,34 +226,16 @@ div:has(> input:not([type="range"]):focus):not(:has(> button)) {
 }
 
 /* Printing (including "Save as PDF") always uses the light palette, regardless of the viewer's
-   theme — white paper reads better with a light report than with the app's dark navy chrome, and
-   it saves ink. This block is placed last and repeats the exact selectors used above so it wins
-   the cascade for `@media print` specifically, without touching on-screen theming. */
+   theme: white paper reads better with a light report, and it saves ink. Because every token is a
+   light-dark() pair, pinning the color scheme is all it takes. */
 @media print {
   :root,
   :root[data-theme="dark"] {
     color-scheme: light;
-    --surface-1: #fcfcfb;
-    --surface-2: #ffffff;
-    --surface-card: #ffffff;
-    --text-primary: #0b0b0b;
-    --text-secondary: #52514e;
-    --text-muted: #898781;
-    --gridline: #e1e0d9;
-    --baseline: #c3c2b7;
-    --border: rgba(11, 11, 11, 0.15);
-    --series-contrib: #2e5090;
-    --series-growth: #0d8a4a;
-    --series-accent: #1499c4;
-    --success-text: #006300;
-    --chart-4: #c2622d;
-    --chart-5: #b23a3a;
-    --chart-6: #6b4a9e;
-    --chart-7: #8a4a1f;
-    --chart-8: #b23a7a;
-    --chart-9: #7a8a1f;
-    --chart-10: #4a5570;
-    --shadow-card: none;
+    /* White paper instead of Snow Storm tints: saves ink and prints cleanly. */
+    --page: #ffffff;
+    --panel: #ffffff;
+    --sunken: #eceff4;
   }
 
   * {
@@ -288,15 +243,11 @@ div:has(> input:not([type="range"]):focus):not(:has(> button)) {
     -webkit-print-color-adjust: exact;
   }
 
-  .bg-grid {
+  body {
     background-image: none;
   }
 
-  body {
-    background: #ffffff;
-  }
-
-  /* The app's max-w-7xl container is sized for a wide desktop screen — on a printed page that's
+  /* The app's max-width container is sized for a wide desktop screen — on a printed page that's
      often wider than the actual paper, so charts (measured by Recharts' ResponsiveContainer
      against their DOM parent) can end up wider than what fits and get clipped at the page edge.
      Letting content fill the real print width, and forcing every chart's measured container to

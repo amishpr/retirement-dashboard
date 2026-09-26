@@ -1,31 +1,28 @@
-import { motion, useMotionValue, useTransform, animate, type AnimationPlaybackControls } from "framer-motion";
+import { motion, useMotionValue, useReducedMotion, useTransform, animate } from "framer-motion";
 import { useEffect, useRef } from "react";
 
 export function AnimatedNumber({
   value,
   formatter,
-  className,
-  pulseOnChange = false,
+  className = "",
 }: {
   value: number;
   formatter: (n: number) => string;
   className?: string;
-  /** Adds a brief scale pulse on top of the digit count-up whenever the value changes after mount —
-   *  for the one number (the hero headline) that should feel the most alive when an input changes,
-   *  versus the quieter stat tiles, which only count up. */
-  pulseOnChange?: boolean;
 }) {
   // Starts at the real value, not 0 — the first paint should show the correct number immediately.
   // Counting up from 0 on the very first mount just reads as the page briefly showing wrong data
   // before "correcting" itself. The count-up is worth keeping for later changes though (it's useful
   // feedback that adjusting an input actually moved the number), so it's skipped once, on mount only.
+  // Reduced-motion visitors get an instant jump instead. (MotionConfig in main.tsx only reaches
+  // motion components, not imperative animate() calls like this one, hence the explicit check.)
+  const reduceMotion = useReducedMotion();
   const motionValue = useMotionValue(value);
   const rounded = useTransform(motionValue, (v) => formatter(v));
-  const scale = useMotionValue(1);
   const isFirstRender = useRef(true);
 
   useEffect(() => {
-    if (isFirstRender.current) {
+    if (isFirstRender.current || reduceMotion) {
       isFirstRender.current = false;
       motionValue.set(value);
       return;
@@ -34,20 +31,10 @@ export function AnimatedNumber({
       duration: 0.8,
       ease: [0.16, 1, 0.3, 1],
     });
-    let pulseControls: AnimationPlaybackControls | undefined;
-    if (pulseOnChange) {
-      pulseControls = animate(scale, [1, 1.08, 1], { duration: 0.5, ease: "easeOut" });
-    }
-    return () => {
-      controls.stop();
-      pulseControls?.stop();
-    };
+    return () => controls.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
-  return (
-    <motion.span className={className} style={{ display: "inline-block", scale }}>
-      {rounded}
-    </motion.span>
-  );
+  // Tabular figures keep every digit the same width, so the number doesn't jitter while it counts.
+  return <motion.span className={`tabular-nums ${className}`}>{rounded}</motion.span>;
 }

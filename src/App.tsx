@@ -1,50 +1,26 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import { PiggyBank, Sparkles, TrendingUp, Wallet } from "lucide-react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { ControlsPanel, type Controls } from "./components/ControlsPanel";
-import { StatTile } from "./components/StatTile";
-import { AnimatedNumber } from "./components/AnimatedNumber";
-import { GrowthChart } from "./components/GrowthChart";
-import { ScenarioChart } from "./components/ScenarioChart";
+import { Header } from "./components/Header";
+import { SummaryHero } from "./components/SummaryHero";
+import { MobileBalanceBar } from "./components/MobileBalanceBar";
+import { ProjectionCard } from "./components/ProjectionCard";
 import { CompareChart, type CompareFund } from "./components/CompareChart";
-import { BreakdownDonut } from "./components/BreakdownDonut";
-import { YearlyGrowthBarChart } from "./components/YearlyGrowthBarChart";
-import { CandlestickChart, type CandlePoint } from "./components/CandlestickChart";
-import { RetirementIncomeCard } from "./components/RetirementIncomeCard";
 import { RiskReturnChart, type RiskReturnPoint } from "./components/RiskReturnChart";
-import { VolatilityBarChart, type VolatilityPoint } from "./components/VolatilityBarChart";
-import { HoldingsDonut } from "./components/HoldingsDonut";
 import { HoldingsChart } from "./components/HoldingsChart";
 import { SectorChart } from "./components/SectorChart";
-import { GeographyDonut } from "./components/GeographyDonut";
 import { FundOverviewCard, type FundOverviewData } from "./components/FundOverviewCard";
-import { DownloadReportButton } from "./components/DownloadReportButton";
-import { GithubRepoButton } from "./components/GithubRepoButton";
-import { PrintPageButton } from "./components/PrintPageButton";
-import { ThemeToggle } from "./components/ThemeToggle";
 import { ETF_OPTIONS, getAllFunds, DEFAULT_ETF_TICKER } from "./data/etfs";
 import { aggregatePortfolioComposition, getFundComposition, getTopHoldingsConcentration } from "./data/fundComposition";
 import type { ExcelSheet } from "./lib/excelExport";
-import { fetchLiveQuotes, type LiveQuote } from "./lib/liveData";
+import { fetchLiveQuotes, resolvePrice, type LiveQuote } from "./lib/liveData";
 import { computeBlendedReturn, computeBlendedVolatility, type PortfolioMixRow } from "./lib/portfolio";
-import {
-  currencyFormatter,
-  finalPoint,
-  formatAdaptiveCurrency,
-  projectGrowth,
-  SAFE_WITHDRAWAL_RATE,
-  type ProjectionInput,
-} from "./lib/projection";
+import { finalPoint, projectGrowth, SAFE_WITHDRAWAL_RATE, type ProjectionInput } from "./lib/projection";
 import { classifyRisk } from "./lib/risk";
 
 const RETURN_SPREAD = 0.02;
-
-const WALLET_ICON = <Wallet size={16} />;
-const PIGGY_ICON = <PiggyBank size={16} />;
-const TRENDING_ICON = <TrendingUp size={16} />;
-const SPARKLES_ICON = <Sparkles size={16} />;
-const formatMultiple = (v: number) => `${v.toFixed(1)}×`;
 const LIVE_RETURN_BOUNDS: [number, number] = [-0.1, 0.5];
+/** Matches the finance function's 5-minute cache, so each refresh can bring a newer quote. */
+const LIVE_REFRESH_MS = 5 * 60 * 1000;
 
 const initialControls: Controls = {
   mode: "single",
@@ -86,39 +62,48 @@ function App() {
     if (tickers.length === 0) return;
     let cancelled = false;
 
-    fetchLiveQuotes(tickers, "5y")
-      .then((results) => {
-        if (cancelled) return;
-        const okResults = results.filter((r) => r.ok);
+    const load = () =>
+      fetchLiveQuotes(tickers, "5y")
+        .then((results) => {
+          if (cancelled) return;
+          const okResults = results.filter((r) => r.ok);
 
-        setLiveData((prev) => {
-          const next = { ...prev };
-          for (const result of okResults) next[result.symbol] = result;
-          return next;
-        });
-
-        // Seed a freshly-added custom ticker's assumed return from its real 5yr CAGR, once,
-        // without clobbering a value the user has since dragged the slider to set themselves.
-        setControls((prev) => {
-          let changed = false;
-          const nextCustomTickers = prev.customTickers.map((ct) => {
-            const live = okResults.find((r) => r.symbol === ct.ticker);
-            if (!ct.liveSeeded && live?.cagr !== undefined) {
-              changed = true;
-              const clamped = Math.min(LIVE_RETURN_BOUNDS[1], Math.max(LIVE_RETURN_BOUNDS[0], live.cagr));
-              return { ...ct, avgReturn: clamped, liveSeeded: true };
-            }
-            return ct;
+          setLiveData((prev) => {
+            const next = { ...prev };
+            for (const result of okResults) next[result.symbol] = result;
+            return next;
           });
-          return changed ? { ...prev, customTickers: nextCustomTickers } : prev;
+
+          // Seed a freshly-added custom ticker's assumed return from its real 5yr CAGR, once,
+          // without clobbering a value the user has since dragged the slider to set themselves.
+          setControls((prev) => {
+            let changed = false;
+            const nextCustomTickers = prev.customTickers.map((ct) => {
+              const live = okResults.find((r) => r.symbol === ct.ticker);
+              if (!ct.liveSeeded && live?.cagr !== undefined) {
+                changed = true;
+                const clamped = Math.min(LIVE_RETURN_BOUNDS[1], Math.max(LIVE_RETURN_BOUNDS[0], live.cagr));
+                return { ...ct, avgReturn: clamped, liveSeeded: true };
+              }
+              return ct;
+            });
+            return changed ? { ...prev, customTickers: nextCustomTickers } : prev;
+          });
+        })
+        .catch(() => {
+          // Live data unavailable (e.g. running plain `vite dev`) — ignore and keep static assumptions.
         });
-      })
-      .catch(() => {
-        // Live data unavailable (e.g. running plain `vite dev`) — ignore and keep static assumptions.
-      });
+
+    load();
+    // Prices move through the trading day. Skip refreshes while the tab is in the background, and
+    // a failed refresh keeps the last good quotes rather than dropping back to averages.
+    const timer = window.setInterval(() => {
+      if (!document.hidden) load();
+    }, LIVE_REFRESH_MS);
 
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
     };
   }, [fundTickerKey]);
 
@@ -131,13 +116,8 @@ function App() {
 
   const planLabel =
     plan.mode === "portfolio"
-      ? "your portfolio mix"
+      ? "Your mix"
       : selectedFund.ticker;
-
-  const growthSubtitle =
-    plan.mode === "portfolio"
-      ? "Projected value of your portfolio mix, contributions vs. market growth"
-      : `Projected value of your ${selectedFund.ticker} investment, contributions vs. market growth`;
 
   const compareFunds: CompareFund[] = useMemo(() => {
     const presets: CompareFund[] = ETF_OPTIONS.map((f) => ({
@@ -159,6 +139,10 @@ function App() {
 
   const getVolatility = (ticker: string, staticVolatility?: number) =>
     liveData[ticker]?.volatility ?? staticVolatility;
+  // A mix blends its funds' volatility, so each fund needs the same built-in fallback a single fund
+  // gets. Without it, a mix showed "n/a" and dropped off the risk chart whenever live data was down.
+  const fundVolatility = (ticker: string) =>
+    getVolatility(ticker, ETF_OPTIONS.find((f) => f.ticker === ticker)?.staticVolatility);
 
   const riskReturnPoints: RiskReturnPoint[] = useMemo(() => {
     const points: RiskReturnPoint[] = [];
@@ -168,7 +152,7 @@ function App() {
       points.push({ ticker: f.ticker, risk, returnPct: f.avgReturn * 100, highlighted: compareHighlight === f.ticker });
     }
     if (plan.mode === "portfolio") {
-      const mixRisk = computeBlendedVolatility(plan.allocations, (t) => getVolatility(t));
+      const mixRisk = computeBlendedVolatility(plan.allocations, fundVolatility);
       if (mixRisk !== undefined) {
         points.push({ ticker: "MIX", risk: mixRisk, returnPct: blendedReturn * 100, highlighted: true });
       }
@@ -182,17 +166,6 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveData, plan.mode, plan.allocations, selectedFund, blendedReturn, compareHighlight]);
 
-  const volatilityPoints: VolatilityPoint[] = useMemo(
-    () =>
-      riskReturnPoints.map((p) => ({
-        ticker: p.ticker,
-        volatility: p.risk,
-        riskLabel: classifyRisk(p.risk),
-        highlighted: p.highlighted,
-      })),
-    [riskReturnPoints],
-  );
-
   const compositionResult = useMemo(() => {
     if (plan.mode === "portfolio") {
       const agg = aggregatePortfolioComposition(plan.allocations);
@@ -201,7 +174,7 @@ function App() {
       const coveragePct = (agg.coveredWeight / totalWeight) * 100;
       return {
         composition: agg.composition,
-        note: `Weighted across the funds in your mix with known composition data (~${coveragePct.toFixed(0)}% of your allocation) — approximate, not live.`,
+        note: `Weighted across the funds in your mix with known composition data (~${coveragePct.toFixed(0)}% of your allocation). Approximate, not live.`,
       };
     }
     return { composition: getFundComposition(selectedFund.ticker), note: undefined };
@@ -232,7 +205,7 @@ function App() {
         }
       }
       const blendedExpenseRatio = knownExpenseWeight > 0 ? expenseSum / knownExpenseWeight : undefined;
-      const mixRisk = totalWeight > 0 ? computeBlendedVolatility(plan.allocations, (t) => getVolatility(t)) : undefined;
+      const mixRisk = totalWeight > 0 ? computeBlendedVolatility(plan.allocations, fundVolatility) : undefined;
 
       return {
         ticker: "MIX",
@@ -256,6 +229,7 @@ function App() {
       category: selectedFund.category,
       avgReturn: selectedFund.avgReturn,
       expenseRatio: selectedFund.expenseRatio,
+      price: resolvePrice(live, selectedFund.avgPrice),
       riskLabel: live?.riskLabel ?? selectedFund.riskLabel,
       volatility: live?.volatility ?? selectedFund.staticVolatility,
       domestic: compositionResult.composition?.domestic,
@@ -301,25 +275,13 @@ function App() {
     }));
   }, [input, annualReturn, growthData]);
 
-  const candleData: CandlePoint[] = useMemo(
-    () =>
-      scenarioData.slice(1).map((point, i) => ({
-        age: point.age,
-        open: scenarioData[i].expected,
-        close: point.expected,
-        high: point.optimistic,
-        low: point.conservative,
-      })),
-    [scenarioData],
-  );
-
   const totalContributed = final.contributions;
   const totalGrowth = final.growth;
   const multiple = totalContributed > 0 ? final.balance / totalContributed : 0;
+  const annualIncome = final.balance * SAFE_WITHDRAWAL_RATE;
 
   const getReportSheets = (): ExcelSheet[] => {
     const composition = compositionResult.composition;
-    const annualIncome = final.balance * SAFE_WITHDRAWAL_RATE;
 
     const summary: Record<string, unknown>[] = [
       { metric: "Plan", value: plan.mode === "portfolio" ? "Portfolio mix" : selectedFund.ticker },
@@ -435,200 +397,100 @@ function App() {
     ];
   };
 
+  const planPanelRef = useRef<HTMLElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
+
   return (
-    <div className="bg-grid min-h-screen pb-16">
-      <header
-        className="border-b"
-        style={{ borderColor: "var(--border)", background: "var(--surface-1)" }}
-      >
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-4 sm:px-6">
-          <div className="flex items-center gap-2.5">
-            <span
-              className="flex h-9 w-9 items-center justify-center rounded-xl"
-              style={{ background: "color-mix(in srgb, var(--series-contrib) 15%, transparent)", color: "var(--series-contrib)" }}
-            >
-              <PiggyBank size={18} />
-            </span>
-            <div>
-              <h1 className="text-base font-semibold leading-tight" style={{ color: "var(--text-primary)" }}>
-                Retirement Investing Dashboard
-              </h1>
-              <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                Model your ETF investments through retirement
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <PrintPageButton />
-            <DownloadReportButton filename="retirement-plan-report.xlsx" getSheets={getReportSheets} />
-            <GithubRepoButton />
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+    <div className="min-h-dvh pb-16">
+      <Header getSheets={getReportSheets} />
 
-      <main className="mx-auto max-w-7xl px-4 pt-6 sm:px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="mb-6 rounded-2xl border p-5 sm:p-6"
-          style={{
-            borderColor: "var(--border)",
-            background:
-              "linear-gradient(135deg, color-mix(in srgb, var(--series-contrib) 10%, var(--surface-card)), var(--surface-card))",
-            boxShadow: "var(--shadow-card)",
-          }}
-        >
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 text-xs font-medium" style={{ color: "var(--series-contrib)" }}>
-                <Sparkles size={14} />
-                {years > 0 ? `${years} years to go` : "Set a future target age"}
-              </div>
-              <p className="mt-2 text-lg sm:text-xl" style={{ color: "var(--text-primary)" }}>
-                At age {plan.targetAge}, investing in <span className="font-semibold">{planLabel}</span> could
-                potentially grow to{" "}
-                <span className="font-semibold" style={{ color: "var(--series-contrib)" }}>
-                  <AnimatedNumber
-                    value={final.balance}
-                    formatter={(v) => currencyFormatter.format(v)}
-                    className="text-xl sm:text-2xl"
-                    pulseOnChange
-                  />
-                </span>
-                .
-              </p>
-              <p className="mt-1 text-base sm:text-lg" style={{ color: "var(--text-muted)" }}>
-                Which is{" "}
-                <span className="font-semibold" style={{ color: "var(--text-secondary)" }}>
-                  <AnimatedNumber
-                    value={final.balance * SAFE_WITHDRAWAL_RATE}
-                    formatter={(v) => currencyFormatter.format(v)}
-                    pulseOnChange
-                  />
-                </span>{" "}
-                annually at a {(SAFE_WITHDRAWAL_RATE * 100).toFixed(0)}% safe withdrawal rate.
-              </p>
-              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                Based on a {(annualReturn * 100).toFixed(1)}% average annual return, historically. Actual results will vary.
-              </p>
-            </div>
-            <span
-              className="hidden h-16 w-16 shrink-0 items-center justify-center rounded-2xl sm:flex"
-              style={{
-                background: "color-mix(in srgb, var(--series-contrib) 15%, transparent)",
-                color: "var(--series-contrib)",
-              }}
-            >
-              <TrendingUp size={30} />
-            </span>
+      <main className="mx-auto max-w-[1280px] px-4 pt-6 sm:px-6 lg:pt-8">
+        {/* One column on small screens, ordered answer first, then the inputs, then the detail.
+            From lg up, the plan panel sits in a sticky left column spanning both rows. */}
+        <div className="grid grid-cols-1 gap-6 print:block lg:grid-cols-[320px_minmax(0,1fr)] lg:grid-rows-[auto_1fr]">
+          <div ref={summaryRef} className="min-w-0 lg:col-start-2 lg:row-start-1 print:mb-6">
+            <SummaryHero
+              balance={final.balance}
+              contributed={totalContributed}
+              growth={totalGrowth}
+              multiple={multiple}
+              annualIncome={annualIncome}
+              withdrawalRate={SAFE_WITHDRAWAL_RATE}
+              targetAge={plan.targetAge}
+              years={years}
+              planLabel={planLabel}
+              annualReturn={annualReturn}
+            />
           </div>
-        </motion.div>
 
-        <div className="grid grid-cols-1 gap-6 print:block lg:grid-cols-[320px_1fr]">
-          <div className="print:hidden lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto">
+          <aside
+            ref={planPanelRef}
+            aria-label="Your plan"
+            className="min-w-0 print:hidden lg:sticky lg:top-6 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:max-h-[calc(100dvh-3rem)] lg:self-start lg:overflow-y-auto"
+          >
             <ControlsPanel
               controls={controls}
               onChange={setControls}
               liveData={liveData}
               annualReturn={annualReturn}
-              currentAnnualIncomeEstimate={final.balance * SAFE_WITHDRAWAL_RATE}
+              currentAnnualIncomeEstimate={annualIncome}
             />
-          </div>
+          </aside>
 
-          <div className="flex flex-col gap-6">
+          <div className="flex min-w-0 flex-col gap-6 lg:col-start-2 lg:row-start-2">
+            <ProjectionCard
+              data={growthData}
+              scenarioData={scenarioData}
+              annualReturn={annualReturn}
+              returnSpread={RETURN_SPREAD}
+              planLabel={planLabel}
+            />
+
             <FundOverviewCard data={fundOverviewData} />
 
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <StatTile
-                label="Final balance"
-                value={final.balance}
-                formatter={formatAdaptiveCurrency}
-                hint={`at age ${plan.targetAge}`}
-                icon={WALLET_ICON}
-                accent="var(--series-contrib)"
-              />
-              <StatTile
-                label="Total contributed"
-                value={totalContributed}
-                formatter={formatAdaptiveCurrency}
-                hint="principal you invest"
-                icon={PIGGY_ICON}
-                accent="var(--series-contrib)"
-              />
-              <StatTile
-                label="Investment growth"
-                value={totalGrowth}
-                formatter={formatAdaptiveCurrency}
-                hint="earned from compounding"
-                icon={TRENDING_ICON}
-                accent="var(--series-growth)"
-              />
-              <StatTile
-                label="Growth multiple"
-                value={multiple}
-                formatter={formatMultiple}
-                hint="balance vs. contributed"
-                icon={SPARKLES_ICON}
-                accent="var(--series-accent)"
-              />
-            </div>
-
-            <GrowthChart data={growthData} subtitle={growthSubtitle} />
-
-            <div className="grid grid-cols-1 gap-6 print:grid-cols-1 lg:grid-cols-[1.3fr_1fr]">
-              <ScenarioChart data={scenarioData} returnSpread={RETURN_SPREAD} />
-              <BreakdownDonut contributions={totalContributed} growth={totalGrowth} />
-            </div>
-
-            <div className="grid grid-cols-1 gap-6 print:grid-cols-1 lg:grid-cols-[1.3fr_1fr]">
-              <YearlyGrowthBarChart data={growthData} />
-              <RetirementIncomeCard finalBalance={final.balance} />
-            </div>
-
-            <CandlestickChart data={candleData} />
-
-            <div className="grid grid-cols-1 gap-6 print:grid-cols-1 lg:grid-cols-[1.3fr_1fr]">
-              <RiskReturnChart points={riskReturnPoints} />
-              <VolatilityBarChart points={volatilityPoints} />
-            </div>
-
-            <div className="grid grid-cols-1 items-stretch gap-6 print:grid-cols-1 lg:grid-cols-[1fr_1.3fr]">
-              <HoldingsDonut label={planLabel} composition={compositionResult.composition} note={compositionResult.note} />
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
               <HoldingsChart label={planLabel} composition={compositionResult.composition} note={compositionResult.note} />
-            </div>
-
-            <div className="grid grid-cols-1 items-stretch gap-6 print:grid-cols-1 lg:grid-cols-[1.3fr_1fr]">
               <SectorChart label={planLabel} composition={compositionResult.composition} note={compositionResult.note} />
-              <GeographyDonut label={planLabel} composition={compositionResult.composition} note={compositionResult.note} />
             </div>
 
-            <CompareChart input={input} funds={compareFunds} highlightTicker={compareHighlight} />
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+              <CompareChart input={input} funds={compareFunds} highlightTicker={compareHighlight} />
+              <RiskReturnChart points={riskReturnPoints} />
+            </div>
 
-            <div className="px-1 text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
+            <footer className="pt-2 text-[13px] leading-relaxed text-ink-3">
               <p>
                 Average annual returns are approximate, long-run historical figures for each fund and are provided for
-                educational purposes only. They are not a guarantee or prediction of future performance. This tool does
-                not account for fees, taxes, dividend reinvestment timing, or inflation, and is not financial advice.
+                educational purposes only.
+                <br />
+                They are not a guarantee or prediction of future performance.
+                <br />
+                This tool does not account for fees, taxes, dividend reinvestment timing, or inflation, and is not financial
+                advice.
               </p>
               <p className="mt-2">
-                This dashboard was made by{" "}
+                Made by{" "}
                 <a
                   href="https://github.com/amishpr"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-medium underline-offset-2 hover:underline"
-                  style={{ color: "var(--text-secondary)" }}
+                  className="font-medium text-ink-2 underline decoration-line-strong underline-offset-2 hover:text-ink hover:decoration-ink-3"
                 >
                   Amish Prajapati
                 </a>
                 .
               </p>
-            </div>
+            </footer>
           </div>
         </div>
       </main>
+
+      <MobileBalanceBar
+        planRef={planPanelRef}
+        summaryRef={summaryRef}
+        balance={final.balance}
+        targetAge={plan.targetAge}
+      />
     </div>
   );
 }

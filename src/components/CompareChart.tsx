@@ -1,10 +1,8 @@
 import { memo, useMemo } from "react";
-import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { currencyFormatterPrecise, finalPoint, formatCompact } from "../lib/projection";
-import type { ProjectionInput } from "../lib/projection";
+import { finalPoint, type ProjectionInput } from "../lib/projection";
 import { Card } from "./Card";
-import { TooltipCard } from "./ChartTooltip";
 import { DownloadCsvButton } from "./DownloadCsvButton";
+import { RankedBars } from "./RankedBars";
 
 export interface CompareFund {
   ticker: string;
@@ -13,34 +11,14 @@ export interface CompareFund {
   expenseRatio?: number;
 }
 
-function CompareTooltip({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
-  const row = payload[0].payload;
-  const rows = [
-    {
-      key: "balance",
-      label: "Projected balance",
-      value: currencyFormatterPrecise.format(row.balance),
-      color: row.selected ? "var(--series-growth)" : "var(--series-contrib)",
-    },
-    {
-      key: "return",
-      label: "Avg. annual return",
-      value: `${(row.avgReturn * 100).toFixed(1)}%`,
-      color: "var(--text-muted)",
-    },
-  ];
-  if (typeof row.expenseRatio === "number") {
-    rows.push({
-      key: "expenseRatio",
-      label: "Expense ratio",
-      value: `${(row.expenseRatio * 100).toFixed(2)}%/yr`,
-      color: "var(--text-muted)",
-    });
-  }
-  return <TooltipCard title={`${row.ticker} — ${row.name}`} rows={rows} />;
+function formatBalance(v: number): string {
+  if (Math.abs(v) >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
+  if (Math.abs(v) >= 1e6) return `$${(v / 1e6).toFixed(2)}M`;
+  return `$${Math.round(v / 1e3)}K`;
 }
 
+/** Your exact schedule run through each fund's historical average, ranked, with your pick in the
+ *  accent color so you can see where it lands. */
 export const CompareChart = memo(function CompareChart({
   input,
   funds,
@@ -53,25 +31,19 @@ export const CompareChart = memo(function CompareChart({
   const rows = useMemo(
     () =>
       funds
-        .map((fund) => {
-          const point = finalPoint(input, fund.avgReturn);
-          return {
-            ticker: fund.ticker,
-            name: fund.name,
-            avgReturn: fund.avgReturn,
-            expenseRatio: fund.expenseRatio,
-            balance: point.balance,
-            selected: fund.ticker === highlightTicker,
-          };
-        })
+        .map((fund) => ({
+          ...fund,
+          balance: finalPoint(input, fund.avgReturn).balance,
+          selected: fund.ticker === highlightTicker,
+        }))
         .sort((a, b) => b.balance - a.balance),
     [funds, input, highlightTicker],
   );
 
   return (
     <Card
-      title="How Popular ETFs Compare"
-      subtitle="Same schedule and timeline, applied to each fund's historical average return"
+      title="Compare funds"
+      subtitle="Your schedule and timeline, applied to each fund's historical average return."
       action={
         <DownloadCsvButton
           filename="etf-comparison.csv"
@@ -87,38 +59,24 @@ export const CompareChart = memo(function CompareChart({
         />
       }
     >
-      <div className="h-72 sm:h-80">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 24, left: 0, bottom: 0 }} barCategoryGap={10}>
-            <CartesianGrid stroke="var(--gridline)" horizontal={false} />
-            <XAxis
-              type="number"
-              tickLine={false}
-              axisLine={{ stroke: "var(--baseline)" }}
-              tick={{ fill: "var(--text-muted)", fontSize: 12 }}
-              tickFormatter={(v) => formatCompact(v)}
-            />
-            <YAxis
-              type="category"
-              dataKey="ticker"
-              tickLine={false}
-              axisLine={false}
-              width={48}
-              tick={{ fill: "var(--text-primary)", fontSize: 12, fontWeight: 600 }}
-            />
-            <Tooltip content={<CompareTooltip />} cursor={{ fill: "var(--gridline)", opacity: 0.5 }} />
-            <Bar dataKey="balance" radius={[0, 4, 4, 0]} maxBarSize={24} isAnimationActive={false}>
-              {rows.map((row) => (
-                <Cell
-                  key={row.ticker}
-                  fill={row.selected ? "var(--series-growth)" : "var(--series-contrib)"}
-                  fillOpacity={row.selected ? 1 : 0.55}
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      <RankedBars
+        label={`Projected balance at age ${input.targetAge} by fund`}
+        labelWidth="8.5rem"
+        valueWidth="4.5rem"
+        rows={rows.map((r) => ({
+          key: r.ticker,
+          title: `${r.ticker}: ${r.name}`,
+          selected: r.selected,
+          value: r.balance,
+          display: formatBalance(r.balance),
+          label: (
+            <span className="flex items-baseline gap-2">
+              <span className="font-mono">{r.ticker === "MIX" ? "Your mix" : r.ticker}</span>
+              <span className="font-mono text-xs font-normal text-ink-3 tabular-nums">{(r.avgReturn * 100).toFixed(1)}%</span>
+            </span>
+          ),
+        }))}
+      />
     </Card>
   );
 });
