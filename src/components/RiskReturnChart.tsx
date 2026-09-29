@@ -47,7 +47,7 @@ function RiskDot({ cx = 0, cy = 0, payload }: DotProps) {
           fontSize={12}
           fontWeight={highlighted ? 600 : 500}
           fill={highlighted ? "var(--ink)" : "var(--ink-2)"}
-          style={{ fontFamily: "var(--font-mono)" }}
+          className="tabular-nums"
         >
           {displayTicker(ticker)}
         </text>
@@ -170,11 +170,11 @@ export const RiskReturnChart = memo(function RiskReturnChart({ points }: { point
             <tbody className="divide-y divide-line">
               {byRisk.map((p) => (
                 <tr key={p.ticker} className={p.highlighted ? "bg-accent/[0.07]" : undefined}>
-                  <td className={`px-3 py-2 font-mono ${p.highlighted ? "font-semibold text-ink" : "text-ink-2"}`}>
+                  <td className={`px-3 py-2 ${p.highlighted ? "font-semibold text-ink" : "text-ink-2"}`}>
                     {displayTicker(p.ticker)}
                   </td>
-                  <td className="px-3 py-2 text-right font-mono text-ink-2 tabular-nums">{p.riskPct.toFixed(1)}%</td>
-                  <td className="px-3 py-2 text-right font-mono text-ink-2 tabular-nums">{p.returnPct.toFixed(1)}%</td>
+                  <td className="px-3 py-2 text-right text-ink-2 tabular-nums">{p.riskPct.toFixed(1)}%</td>
+                  <td className="px-3 py-2 text-right text-ink-2 tabular-nums">{p.returnPct.toFixed(1)}%</td>
                   <td className="px-3 py-2">
                     <RiskBadge label={classifyRisk(p.risk)} />
                   </td>

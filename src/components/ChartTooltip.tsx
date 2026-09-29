@@ -6,8 +6,8 @@ export interface TooltipRow {
   value: string;
   /** Swatch color that ties the row to its mark. Text always stays in ink. */
   color?: string;
-  /** Line swatch for line series, square for filled marks. */
-  swatch?: "line" | "square";
+  /** Line swatch for line series (dash for dashed ones), square for filled marks. */
+  swatch?: "line" | "dash" | "square";
   emphasis?: boolean;
 }
 
@@ -30,13 +30,19 @@ export function TooltipCard({ title, subtitle, rows }: { title: string; subtitle
               {row.color && (
                 <span
                   aria-hidden="true"
-                  className={row.swatch === "line" ? "h-0.5 w-3 rounded-full" : "h-2 w-2 rounded-[2px]"}
-                  style={{ background: row.color }}
+                  className={
+                    row.swatch === "dash"
+                      ? "w-3 border-t-2 border-dashed"
+                      : row.swatch === "line"
+                        ? "h-0.5 w-3 rounded-full"
+                        : "h-2 w-2 rounded-[2px]"
+                  }
+                  style={row.swatch === "dash" ? { borderColor: row.color } : { background: row.color }}
                 />
               )}
               {row.label}
             </span>
-            <span className={`font-mono tabular-nums ${row.emphasis ? "font-semibold" : ""}`}>{row.value}</span>
+            <span className={`tabular-nums ${row.emphasis ? "font-semibold" : ""}`}>{row.value}</span>
           </div>
         ))}
       </div>
@@ -48,7 +54,7 @@ export interface LegendItem {
   key: string;
   label: ReactNode;
   color: string;
-  swatch?: "line" | "square" | "band";
+  swatch?: "line" | "dash" | "square" | "band";
 }
 
 /** HTML legend above a chart: swatches carry the series color, labels stay in ink. */
@@ -60,13 +66,15 @@ export function ChartLegend({ items }: { items: LegendItem[] }) {
           <span
             aria-hidden="true"
             className={
-              item.swatch === "line"
-                ? "h-0.5 w-3.5 rounded-full"
-                : item.swatch === "band"
-                  ? "h-2.5 w-3.5 rounded-[2px] opacity-30"
-                  : "h-2.5 w-2.5 rounded-[3px]"
+              item.swatch === "dash"
+                ? "w-3.5 border-t-2 border-dashed"
+                : item.swatch === "line"
+                  ? "h-0.5 w-3.5 rounded-full"
+                  : item.swatch === "band"
+                    ? "h-2.5 w-3.5 rounded-[2px] opacity-30"
+                    : "h-2.5 w-2.5 rounded-[3px]"
             }
-            style={{ background: item.color }}
+            style={item.swatch === "dash" ? { borderColor: item.color } : { background: item.color }}
           />
           {item.label}
         </li>

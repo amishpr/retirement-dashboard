@@ -3,8 +3,8 @@ import { useReducedMotion } from "framer-motion";
 
 /** Shared Recharts styling, so every chart has the same recessive axes and gridlines. */
 
-/** Numeric ticks are set in the mono face so digits line up down an axis. */
-export const numberTick = { fill: "var(--ink-3)", fontSize: 12, fontFamily: "var(--font-mono)" };
+/** Numeric ticks. Their digits are tabular (see the axis rule in index.css), so they line up down an axis. */
+export const numberTick = { fill: "var(--ink-3)", fontSize: 12 };
 export const labelTick = { fill: "var(--ink-2)", fontSize: 12 };
 
 export const xAxisProps = {

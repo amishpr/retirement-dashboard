@@ -7,14 +7,40 @@ export interface ProjectionInput {
   contributionAmount: number;
   contributionFrequency: ContributionFrequency;
   annualReturn: number;
+  /** Inflation for each plan year (index 0 is the first year), as decimals. Missing years count as
+   *  0%, so a projection without it has real values equal to nominal ones. */
+  inflation?: readonly number[];
+  /** Raise each year's contributions with prices, so they keep the same buying power. */
+  raiseContributions?: boolean;
+  /** The calendar year the plan starts in, today. Defaults to the current year. */
+  startYear?: number;
 }
 
 export interface YearPoint {
   age: number;
   year: number;
+  calendarYear: number;
+  /** Nominal (future) dollars: what the account statement will say. */
   balance: number;
   contributions: number;
   growth: number;
+  /** Prices at this point relative to today: 1.6 means things cost 60% more. */
+  priceIndex: number;
+  /** The same figures in today's dollars. `realContributions` counts each deposit at what it was
+   *  worth when you made it, so `realGrowth` is growth beyond inflation and can be negative even
+   *  when nominal growth isn't. */
+  realBalance: number;
+  realContributions: number;
+  realGrowth: number;
+}
+
+export type Dollars = "today" | "future";
+
+/** Balance, contributions, and growth in the chosen dollars, so components don't each branch. */
+export function pickDollars(point: YearPoint, dollars: Dollars): { balance: number; contributions: number; growth: number } {
+  return dollars === "today"
+    ? { balance: point.realBalance, contributions: point.realContributions, growth: point.realGrowth }
+    : { balance: point.balance, contributions: point.contributions, growth: point.growth };
 }
 
 export function toMonthlyContribution(amount: number, frequency: ContributionFrequency): number {
@@ -48,37 +74,31 @@ export function fromMonthlyContribution(monthlyAmount: number, frequency: Contri
 export const SAFE_WITHDRAWAL_RATE = 0.04;
 
 /**
- * Solves for the monthly contribution needed to reach `targetBalance` after `years`, given a
- * starting `currentAmount` and `annualReturn`. This inverts the same monthly-compounding model
- * `projectGrowth` uses (contribute, then grow, each month) via the future-value-of-an-annuity-due
- * formula, rather than approximating with search/iteration. Never returns a negative number — if
- * the starting amount alone is already projected to clear the target, no further contribution is
- * needed.
+ * Solves for the monthly contribution needed to reach `targetBalance` (in future dollars) by the
+ * target age. The balance is linear in the contribution: it's what the starting amount grows to,
+ * plus the contribution times what one dollar a month grows to. So two runs of the same simulation
+ * `projectGrowth` uses give the answer exactly, including contributions that rise with inflation,
+ * which a closed-form annuity formula can't handle. Never returns a negative number: if the
+ * starting amount alone clears the target, no further contribution is needed.
  */
 export function computeRequiredMonthlyContribution(
   targetBalance: number,
-  currentAmount: number,
-  years: number,
-  annualReturn: number,
+  input: Omit<ProjectionInput, "contributionAmount" | "contributionFrequency">,
 ): number {
-  if (years <= 0) return 0;
-
-  const months = years * 12;
-  const monthlyRate = Math.pow(1 + annualReturn, 1 / 12) - 1;
-  const growthOfCurrentAmount = currentAmount * Math.pow(1 + monthlyRate, months);
-  const remaining = targetBalance - growthOfCurrentAmount;
-  if (remaining <= 0) return 0;
-
-  if (monthlyRate === 0) {
-    return remaining / months;
-  }
-
-  // Future value of an annuity-due (contribution added at the start of each period, then grown).
-  const annuityFactor = ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate) * (1 + monthlyRate);
-  return remaining / annuityFactor;
+  if (input.targetAge - input.currentAge <= 0) return 0;
+  const base = { ...input, contributionFrequency: "monthly" as const };
+  const fromCurrentAmount = finalPoint({ ...base, contributionAmount: 0 }).balance;
+  const perDollarMonthly = finalPoint({ ...base, currentAmount: 0, contributionAmount: 1 }).balance;
+  const remaining = targetBalance - fromCurrentAmount;
+  if (remaining <= 0 || perDollarMonthly <= 0) return 0;
+  return remaining / perDollarMonthly;
 }
 
-/** Simulates monthly compounding with contributions added at the start of each month. */
+/**
+ * Simulates monthly compounding with contributions added at the start of each month. Prices rise
+ * through each year at that year's inflation rate, spread evenly across its months, and every
+ * deposit is also counted in today's dollars at the price level when it went in.
+ */
 export function projectGrowth(input: ProjectionInput, annualReturnOverride?: number): YearPoint[] {
   const years = Math.max(0, input.targetAge - input.currentAge);
   const monthlyContribution = toMonthlyContribution(
@@ -87,33 +107,56 @@ export function projectGrowth(input: ProjectionInput, annualReturnOverride?: num
   );
   const annualReturn = annualReturnOverride ?? input.annualReturn;
   const monthlyRate = Math.pow(1 + annualReturn, 1 / 12) - 1;
+  const startYear = input.startYear ?? new Date().getFullYear();
 
   const points: YearPoint[] = [
     {
       age: input.currentAge,
       year: 0,
+      calendarYear: startYear,
       balance: input.currentAmount,
       contributions: input.currentAmount,
       growth: 0,
+      priceIndex: 1,
+      realBalance: input.currentAmount,
+      realContributions: input.currentAmount,
+      realGrowth: 0,
     },
   ];
 
   let balance = input.currentAmount;
   let contributions = input.currentAmount;
+  let realContributions = input.currentAmount;
+  let priceIndex = 1;
+  let yearStartPrice = 1;
+  let monthlyPriceGrowth = 1;
 
   for (let month = 1; month <= years * 12; month++) {
-    balance += monthlyContribution;
-    contributions += monthlyContribution;
+    if ((month - 1) % 12 === 0) {
+      yearStartPrice = priceIndex;
+      monthlyPriceGrowth = Math.pow(1 + (input.inflation?.[(month - 1) / 12] ?? 0), 1 / 12);
+    }
+    const deposit = input.raiseContributions ? monthlyContribution * yearStartPrice : monthlyContribution;
+    balance += deposit;
+    contributions += deposit;
+    realContributions += deposit / priceIndex;
     balance *= 1 + monthlyRate;
+    priceIndex *= monthlyPriceGrowth;
 
     if (month % 12 === 0) {
       const year = month / 12;
+      const realBalance = balance / priceIndex;
       points.push({
         age: input.currentAge + year,
         year,
+        calendarYear: startYear + year,
         balance,
         contributions,
         growth: balance - contributions,
+        priceIndex,
+        realBalance,
+        realContributions,
+        realGrowth: realBalance - realContributions,
       });
     }
   }
@@ -166,10 +209,11 @@ export interface YearlyGrowthPoint {
   yearlyGrowth: number;
 }
 
-/** Market growth added in each year of a projection, excluding that year's new contributions. */
-export function buildYearlyGrowth(data: YearPoint[]): YearlyGrowthPoint[] {
+/** Market growth added in each year of a projection, excluding that year's new contributions. In
+ *  today's dollars it's growth beyond inflation, which a low-return year can turn negative. */
+export function buildYearlyGrowth(data: YearPoint[], dollars: Dollars = "future"): YearlyGrowthPoint[] {
   return data.slice(1).map((point, i) => ({
     age: point.age,
-    yearlyGrowth: point.growth - data[i].growth,
+    yearlyGrowth: pickDollars(point, dollars).growth - pickDollars(data[i], dollars).growth,
   }));
 }

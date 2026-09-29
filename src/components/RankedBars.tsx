@@ -49,7 +49,7 @@ export function RankedBars({
                 style={{ width: `${share * 100}%`, minWidth: row.value > 0 ? 2 : 0 }}
               />
             </span>
-            <span className={`text-right font-mono tabular-nums ${row.selected ? "font-semibold text-ink" : "text-ink-2"}`}>
+            <span className={`text-right tabular-nums ${row.selected ? "font-semibold text-ink" : "text-ink-2"}`}>
               {row.display}
             </span>
           </li>

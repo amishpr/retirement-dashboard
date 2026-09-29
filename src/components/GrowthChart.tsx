@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import type { YearPoint } from "../lib/projection";
+import type { Dollars, YearPoint } from "../lib/projection";
 import { currencyFormatterPrecise } from "../lib/projection";
 import {
   formatAxisMoney,
@@ -17,36 +17,38 @@ import { ChartLegend, TooltipCard, type ChartTooltipProps } from "./ChartTooltip
 const money = (v: number) => currencyFormatterPrecise.format(v);
 
 /** A negative assumed return turns growth into a loss for the whole run, and a loss wears the
- *  critical status color, the same as the losing years in the Yearly view. */
-const growthSeries = (loss: boolean) =>
+ *  critical status color, the same as the losing years in the Yearly view. In today's dollars,
+ *  growth is what's left after inflation, which a low return can also turn into a loss. */
+const growthSeries = (loss: boolean, dollars: Dollars) =>
   loss
-    ? { label: "Market loss", color: "var(--status-critical)" }
-    : { label: "Market growth", color: "var(--accent)" };
+    ? { label: dollars === "today" ? "Loss after inflation" : "Market loss", color: "var(--status-critical)" }
+    : { label: dollars === "today" ? "Growth after inflation" : "Market growth", color: "var(--accent)" };
 
-function GrowthTooltip({ active, payload, label }: ChartTooltipProps<YearPoint>) {
+function GrowthTooltip({ active, payload, label, dollars = "future" }: ChartTooltipProps<YearPoint> & { dollars?: Dollars }) {
   const point = payload?.[0]?.payload;
   if (!active || !point) return null;
   return (
     <TooltipCard
-      title={`Age ${label}`}
+      title={`Age ${label} · ${point.calendarYear}`}
       rows={[
         { key: "balance", label: "Balance", value: money(point.contributions + point.growth), emphasis: true },
         { key: "contributions", label: "You put in", value: money(point.contributions), color: "var(--contrib)" },
-        { key: "growth", ...growthSeries(point.growth < 0), value: money(point.growth) },
+        { key: "growth", ...growthSeries(point.growth < 0, dollars), value: money(point.growth) },
       ]}
     />
   );
 }
 
 /** Stacked balance: contributions underneath, market growth on top. Chart body only; the
- *  Projection card supplies the frame, title, and height. */
-export const GrowthChart = memo(function GrowthChart({ data }: { data: YearPoint[] }) {
+ *  Projection card supplies the frame, title, and height. `data` is already in the dollars shown;
+ *  `dollars` only picks the labels. */
+export const GrowthChart = memo(function GrowthChart({ data, dollars = "future" }: { data: YearPoint[]; dollars?: Dollars }) {
   const reveal = useMountReveal();
   // Round-number y ticks, unless a negative return pushes growth below zero, where Recharts'
   // own scale handles the negative range better.
   const hasNegative = data.some((d) => d.growth < 0);
   const ticks = hasNegative ? undefined : niceTicks(Math.max(...data.map((d) => d.contributions + d.growth)));
-  const growth = growthSeries(hasNegative);
+  const growth = growthSeries(hasNegative, dollars);
 
   return (
     <div className="flex h-full flex-col">
@@ -68,7 +70,7 @@ export const GrowthChart = memo(function GrowthChart({ data }: { data: YearPoint
               tickFormatter={formatAxisMoney}
               width={52}
             />
-            <Tooltip content={<GrowthTooltip />} cursor={lineCursor} />
+            <Tooltip content={<GrowthTooltip dollars={dollars} />} cursor={lineCursor} />
             <Area
               type="monotone"
               dataKey="contributions"
