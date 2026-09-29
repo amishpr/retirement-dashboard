@@ -1,7 +1,8 @@
 import { memo, type ReactNode } from "react";
 import type { RiskLabel } from "../data/etfs";
-import { formatPrice, type FundPrice } from "../lib/liveData";
+import { formatMarketTime, formatPrice, type FundPrice } from "../lib/liveData";
 import { Card } from "./Card";
+import { StatusDot } from "./DataSource";
 import { RiskBadge } from "./RiskBadge";
 
 export interface FundOverviewData {
@@ -10,8 +11,13 @@ export interface FundOverviewData {
   description?: string;
   category?: string;
   avgReturn: number;
+  /** The fund's actual yearly return over the last 5 years, from live data. */
+  actualReturn?: number;
   /** Undefined for a mix, and for a custom ticker until its first quote arrives. */
   price?: FundPrice;
+  /** The fund's first live quote is still on its way: hold the price's place rather than show an
+   *  average that's about to be replaced. */
+  pricePending?: boolean;
   expenseRatio?: number;
   riskLabel?: RiskLabel;
   volatility?: number;
@@ -19,11 +25,12 @@ export interface FundOverviewData {
   international?: number;
 }
 
-function Stat({ label, value }: { label: string; value: ReactNode }) {
+function Stat({ label, value, note }: { label: ReactNode; value: ReactNode; note?: ReactNode }) {
   return (
     <div>
       <dt className="text-[13px] text-ink-3">{label}</dt>
       <dd className="mt-0.5 text-[15px] font-semibold text-ink tabular-nums">{value}</dd>
+      {note && <dd className="mt-0.5 text-xs text-ink-3 tabular-nums">{note}</dd>}
     </div>
   );
 }
@@ -35,14 +42,15 @@ const pct = (v: number | undefined, digits: number, suffix = "") =>
 export const FundOverviewCard = memo(function FundOverviewCard({ data }: { data: FundOverviewData }) {
   const isMix = data.ticker === "MIX";
   const hasSplit = data.domestic !== undefined && data.international !== undefined;
-  const { price } = data;
+  const { price, pricePending } = data;
+  const hasPrice = price !== undefined || pricePending;
 
   return (
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-mono text-xl font-semibold tracking-[-0.02em] text-ink">{isMix ? "Your mix" : data.ticker}</h2>
+            <h2 className="text-xl font-semibold tracking-[-0.02em] text-ink">{isMix ? "Your mix" : data.ticker}</h2>
             {data.category && (
               <span className="rounded-[6px] bg-sunken px-1.5 py-0.5 text-xs font-medium text-ink-2">{data.category}</span>
             )}
@@ -56,24 +64,49 @@ export const FundOverviewCard = memo(function FundOverviewCard({ data }: { data:
       {/* The US/international bar takes a row of its own until there's room for it beside the stats. */}
       <dl
         className={`mt-5 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-line pt-5 md:gap-x-10 ${
-          price ? "sm:grid-cols-4 xl:grid-cols-[auto_auto_auto_auto_minmax(0,1fr)]" : "sm:grid-cols-3 md:grid-cols-[auto_auto_auto_minmax(0,1fr)]"
+          hasPrice ? "sm:grid-cols-4 xl:grid-cols-[auto_auto_auto_auto_minmax(0,1fr)]" : "sm:grid-cols-3 md:grid-cols-[auto_auto_auto_minmax(0,1fr)]"
         }`}
       >
-        {price && (
+        {pricePending ? (
           <Stat
-            label={price.source === "live" ? "Live price" : "12-month avg price"}
+            label={
+              <span className="flex items-center gap-1.5">
+                <StatusDot state="loading" />
+                Live price
+              </span>
+            }
+            value={<span aria-hidden="true" className="inline-block h-4 w-20 translate-y-0.5 rounded-sm bg-ink/[0.08]" />}
+            note="Checking Yahoo Finance…"
+          />
+        ) : price && (
+          <Stat
+            label={
+              price.source === "live" ? (
+                <span className="flex items-center gap-1.5">
+                  <StatusDot state="live" />
+                  Live price
+                </span>
+              ) : (
+                "12-month avg price"
+              )
+            }
             value={
-              <span title={price.source === "live" ? undefined : "Live price unavailable, showing the average close over the past 12 months"}>
+              <span title={price.source === "live" ? "From Yahoo Finance" : "Live price unavailable, showing the average close over the past 12 months"}>
                 {formatPrice(price)}
               </span>
             }
+            note={price.source === "live" && price.asOf ? `Yahoo Finance, ${formatMarketTime(price.asOf)}` : undefined}
           />
         )}
-        <Stat label="Assumed return" value={pct(data.avgReturn, 1, "/yr")} />
+        <Stat
+          label="Assumed return"
+          value={pct(data.avgReturn, 1, "/yr")}
+          note={data.actualReturn !== undefined ? `${pct(data.actualReturn, 1, "/yr")} over the last 5 years` : undefined}
+        />
         <Stat label="Expense ratio" value={pct(data.expenseRatio, 2, "/yr")} />
         <Stat label="Volatility" value={pct(data.volatility, 1)} />
         {hasSplit && (
-          <div className={`col-span-2 min-w-0 ${price ? "sm:col-span-4 xl:col-span-1" : "sm:col-span-3 md:col-span-1"}`}>
+          <div className={`col-span-2 min-w-0 ${hasPrice ? "sm:col-span-4 xl:col-span-1" : "sm:col-span-3 md:col-span-1"}`}>
             <dt className="flex justify-between text-[13px] text-ink-3">
               <span>
                 US <span className="font-semibold text-ink tabular-nums">{pct(data.domestic, 0)}</span>
