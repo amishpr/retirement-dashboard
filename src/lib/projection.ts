@@ -36,6 +36,12 @@ export interface YearPoint {
 
 export type Dollars = "today" | "future";
 
+/** The two ways to count money, labeled the same everywhere they're offered. */
+export const DOLLAR_OPTIONS = [
+  { value: "today", label: "Today's dollars" },
+  { value: "future", label: "Future dollars" },
+] as const satisfies readonly { value: Dollars; label: string }[];
+
 /** Balance, contributions, and growth in the chosen dollars, so components don't each branch. */
 export function pickDollars(point: YearPoint, dollars: Dollars): { balance: number; contributions: number; growth: number } {
   return dollars === "today"
@@ -72,6 +78,22 @@ export function fromMonthlyContribution(monthlyAmount: number, frequency: Contri
 
 /** The common "4% rule" safe withdrawal rate, used both to project retirement income and to solve for it. */
 export const SAFE_WITHDRAWAL_RATE = 0.04;
+
+/**
+ * A yearly income goal, entered in either dollars, as income in the retirement year's prices and
+ * in today's, and the balance the 4% rule needs to pay it. `retirementPrices` is the price index at
+ * retirement (2.5 means things cost 2.5 times what they do today). The 4% rule already raises each
+ * withdrawal with prices, so the first year's income in future dollars is all the target needs.
+ */
+export function incomeGoal(
+  amount: number,
+  dollars: Dollars,
+  retirementPrices: number,
+): { future: number; today: number; targetBalance: number } {
+  const future = dollars === "future" ? amount : amount * retirementPrices;
+  const today = dollars === "today" ? amount : amount / retirementPrices;
+  return { future, today, targetBalance: future / SAFE_WITHDRAWAL_RATE };
+}
 
 /**
  * Solves for the monthly contribution needed to reach `targetBalance` (in future dollars) by the

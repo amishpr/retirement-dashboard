@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { computeRequiredMonthlyContribution, finalPoint, projectGrowth, type ProjectionInput } from "./projection.ts";
+import { computeRequiredMonthlyContribution, finalPoint, incomeGoal, projectGrowth, type ProjectionInput } from "./projection.ts";
 
 const plan: ProjectionInput = {
   currentAge: 30,
@@ -73,4 +73,27 @@ test("the goal solver round-trips with step-ups and varying inflation", () => {
 test("no contribution is needed when savings already clear the goal", () => {
   assert.equal(computeRequiredMonthlyContribution(1000, plan), 0);
   assert.equal(computeRequiredMonthlyContribution(1_000_000, { ...plan, targetAge: 30 }), 0);
+});
+
+test("an income goal in either dollars aims for the same balance when it means the same money", () => {
+  const prices = 2.5;
+  const inToday = incomeGoal(40_000, "today", prices);
+  assert.deepEqual(inToday, { future: 100_000, today: 40_000, targetBalance: 2_500_000 });
+  const inFuture = incomeGoal(100_000, "future", prices);
+  assert.deepEqual(inFuture, { future: 100_000, today: 40_000, targetBalance: 2_500_000 });
+  // The same number means less in future dollars, so it needs a smaller balance.
+  assert.equal(incomeGoal(40_000, "future", prices).targetBalance, 1_000_000);
+  // With prices flat, the two are the same.
+  assert.deepEqual(incomeGoal(40_000, "future", 1), incomeGoal(40_000, "today", 1));
+});
+
+test("a future-dollar goal seeded from the plan's own income asks for the plan's own contribution", () => {
+  const inflation = Array(35).fill(0.03);
+  const last = finalPoint({ ...plan, inflation });
+  const goal = incomeGoal(last.balance * 0.04, "future", last.priceIndex);
+  const monthly = computeRequiredMonthlyContribution(goal.targetBalance, { ...plan, inflation });
+  close(monthly, (200 * 26) / 12, 1e-6);
+  // And the same income counted in today's dollars asks for the same thing.
+  const inToday = incomeGoal(last.realBalance * 0.04, "today", last.priceIndex);
+  close(inToday.targetBalance, goal.targetBalance, 1e-6);
 });

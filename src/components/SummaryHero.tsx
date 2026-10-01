@@ -1,12 +1,7 @@
 import { memo } from "react";
-import { currencyFormatter, formatCompact, type Dollars } from "../lib/projection";
+import { currencyFormatter, DOLLAR_OPTIONS, formatCompact, type Dollars } from "../lib/projection";
 import { AnimatedNumber } from "./AnimatedNumber";
 import { Segmented } from "./Segmented";
-
-const DOLLAR_OPTIONS = [
-  { value: "today", label: "Today's dollars" },
-  { value: "future", label: "Future dollars" },
-] as const;
 
 // Full dollars read best for the headline number; compact only kicks in for absurd inputs, so the
 // figure can never outgrow the panel.
@@ -30,8 +25,8 @@ function Figure({ label, value, formatter }: { label: string; value: number; for
  * versus what the market added. Replaces the old banner, four stat tiles, breakdown donut, and
  * income card, which repeated these same numbers five different ways.
  *
- * Everything here follows the dollars toggle. Today's dollars (what the money will buy, in today's
- * prices) is the default; the other figure always sits under the headline so neither is hidden.
+ * Everything here follows the dollars toggle. Future dollars (what the account statement will say)
+ * is the default; the other figure always sits under the headline so neither is hidden.
  */
 export const SummaryHero = memo(function SummaryHero({
   dollars,

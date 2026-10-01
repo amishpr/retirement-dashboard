@@ -8,9 +8,12 @@ import { addFundToMix, removeFundFromMix, updateMixWeight, type AllocationEntry 
 import {
   computeRequiredMonthlyContribution,
   currencyFormatter,
+  DOLLAR_OPTIONS,
   fromMonthlyContribution,
+  incomeGoal,
   SAFE_WITHDRAWAL_RATE,
   type ContributionFrequency,
+  type Dollars,
 } from "../lib/projection";
 import { fieldLabel, fieldShell, iconButton } from "../lib/ui";
 import { DataSource } from "./DataSource";
@@ -29,8 +32,10 @@ export interface Controls {
   contributionAmount: number;
   contributionFrequency: ContributionFrequency;
   planningMode: "contribution" | "goal";
-  /** In today's dollars. */
+  /** In the dollars `goalDollars` names. */
   desiredAnnualIncome: number;
+  /** Whether the income goal is counted in today's dollars or the retirement year's. */
+  goalDollars: Dollars;
   inflationMode: InflationMode;
   /** The flat yearly rate for the custom inflation mode, as a decimal. */
   customInflation: number;
@@ -586,7 +591,7 @@ export function ControlsPanel({
   inflationLive,
   startYear,
   annualReturn,
-  currentAnnualIncomeEstimate,
+  onTrackIncome,
 }: {
   controls: Controls;
   onChange: (next: Controls) => void;
@@ -601,8 +606,8 @@ export function ControlsPanel({
   inflationLive: boolean;
   startYear: number;
   annualReturn: number;
-  /** What the current plan pays per year in retirement, in today's dollars. */
-  currentAnnualIncomeEstimate: number;
+  /** What the current plan pays per year in retirement, in each kind of dollars. */
+  onTrackIncome: Record<Dollars, number>;
 }) {
   const ids = {
     currentAmount: useId(),
@@ -627,15 +632,16 @@ export function ControlsPanel({
   );
   const retirementPrices = inflationPath.years[inflationPath.years.length - 1]?.priceIndex ?? 1;
 
-  // Goal mode solves backward for the contribution: the income you want is in today's dollars, so
-  // it's scaled up to prices at retirement, turned into a balance with the 4% rule, and then the
-  // same simulation the charts use finds the contribution that reaches it. `contributionAmount`
-  // stays in sync, so the rest of the app reflects the goal-based plan without knowing about it.
-  const goalIncomeAtRetirement = controls.desiredAnnualIncome * retirementPrices;
-  const goalTargetBalance = goalIncomeAtRetirement / SAFE_WITHDRAWAL_RATE;
+  // Goal mode solves backward for the contribution. The income you want is in today's dollars or
+  // the retirement year's, so it's first put in the retirement year's prices, turned into a balance
+  // with the 4% rule, and then the same simulation the charts use finds the contribution that
+  // reaches it. `contributionAmount` stays in sync, so the rest of the app reflects the goal-based
+  // plan without knowing about it.
+  const retirementYear = startYear + goalYears;
+  const goal = incomeGoal(controls.desiredAnnualIncome, controls.goalDollars, retirementPrices);
   const requiredMonthly =
     controls.planningMode === "goal"
-      ? computeRequiredMonthlyContribution(goalTargetBalance, {
+      ? computeRequiredMonthlyContribution(goal.targetBalance, {
           currentAge: controls.currentAge,
           targetAge: controls.targetAge,
           currentAmount: controls.currentAmount,
@@ -713,11 +719,11 @@ export function ControlsPanel({
   };
 
   const setPlanningMode = (mode: Controls["planningMode"]) => {
-    // Seed the goal input with whatever the current plan is already on track for, rather than a
-    // generic default — only on the transition into goal mode, so it doesn't clobber a value the
-    // user has since edited.
+    // Seed the goal input with whatever the current plan is already on track for, in the goal's
+    // dollars, rather than a generic default. Only on the way into goal mode, so it doesn't clobber
+    // a value the user has since edited.
     if (mode === "goal" && controls.planningMode !== "goal") {
-      onChange({ ...controls, planningMode: "goal", desiredAnnualIncome: Math.round(currentAnnualIncomeEstimate) });
+      onChange({ ...controls, planningMode: "goal", desiredAnnualIncome: Math.round(onTrackIncome[controls.goalDollars]) });
     } else {
       update("planningMode", mode);
     }
@@ -939,7 +945,11 @@ export function ControlsPanel({
               </div>
             ) : (
               <div className="flex min-w-0 flex-col gap-1.5">
-                <label htmlFor={ids.income} className={fieldLabel} title="Retirement income you want per year, in today's dollars">
+                <label
+                  htmlFor={ids.income}
+                  className={fieldLabel}
+                  title={`Retirement income you want per year, in ${controls.goalDollars === "today" ? "today's" : retirementYear} dollars`}
+                >
                   Yearly income goal
                 </label>
                 <MoneyInput
@@ -950,6 +960,23 @@ export function ControlsPanel({
               </div>
             )}
           </div>
+
+          {/* Changing it keeps the number and changes what it means, so the contribution follows. */}
+          {controls.planningMode === "goal" && (
+            <div className="flex items-center justify-between gap-3">
+              <span aria-hidden="true" className={fieldLabel}>
+                Goal in
+              </span>
+              <Segmented
+                size="sm"
+                label="Income goal in"
+                options={DOLLAR_OPTIONS}
+                value={controls.goalDollars}
+                onChange={(dollars) => update("goalDollars", dollars)}
+                className="min-w-0 flex-1"
+              />
+            </div>
+          )}
 
           <Segmented
             size="sm"
@@ -971,10 +998,11 @@ export function ControlsPanel({
                     <span className="text-[13px] text-ink-2">{FREQUENCY_PHRASE[controls.contributionFrequency]}</span>
                   </p>
                   <p className="mt-1.5 text-xs leading-relaxed text-ink-3">
-                    {currencyFormatter.format(controls.desiredAnnualIncome)} today is about{" "}
-                    {currencyFormatter.format(goalIncomeAtRetirement)} a year in {startYear + goalYears} prices. At a{" "}
-                    {(SAFE_WITHDRAWAL_RATE * 100).toFixed(0)}% withdrawal rate, that takes about{" "}
-                    {currencyFormatter.format(goalTargetBalance)} saved by {controls.targetAge}.
+                    {controls.goalDollars === "today"
+                      ? `${currencyFormatter.format(goal.today)} today is about ${currencyFormatter.format(goal.future)} a year in ${retirementYear} prices.`
+                      : `${currencyFormatter.format(goal.future)} a year in ${retirementYear} is about ${currencyFormatter.format(goal.today)} in today's dollars.`}{" "}
+                    At a {(SAFE_WITHDRAWAL_RATE * 100).toFixed(0)}% withdrawal rate, that takes about{" "}
+                    {currencyFormatter.format(goal.targetBalance)} saved by {controls.targetAge}.
                   </p>
                 </>
               ) : (

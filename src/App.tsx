@@ -59,6 +59,7 @@ const initialControls: Controls = {
   contributionFrequency: "biweekly",
   planningMode: "contribution",
   desiredAnnualIncome: 40000,
+  goalDollars: "future",
   inflationMode: "forecast",
   customInflation: 0.03,
   raiseContributions: false,
@@ -69,13 +70,13 @@ const START_YEAR = new Date().getFullYear();
 
 const DOLLARS_KEY = "dollars";
 
-/** Today's dollars unless the visitor picked future dollars before. Storage can throw (private
- *  windows, blocked site data), and then it's just the default. */
+/** Future dollars, what the account statement will say, unless the visitor picked today's dollars
+ *  before. Storage can throw (private windows, blocked site data), and then it's just the default. */
 function readStoredDollars(): Dollars {
   try {
-    return localStorage.getItem(DOLLARS_KEY) === "future" ? "future" : "today";
+    return localStorage.getItem(DOLLARS_KEY) === "today" ? "today" : "future";
   } catch {
-    return "today";
+    return "future";
   }
 }
 
@@ -389,7 +390,12 @@ function App() {
       { metric: "Current invested amount", value: plan.currentAmount },
       { metric: "Planning mode", value: plan.planningMode === "goal" ? "By goal" : "By contribution" },
       ...(plan.planningMode === "goal"
-        ? [{ metric: "Desired annual retirement income (today's dollars)", value: plan.desiredAnnualIncome.toFixed(2) }]
+        ? [
+            {
+              metric: `Desired annual retirement income (${plan.goalDollars === "today" ? "today's" : retirementYear} dollars)`,
+              value: plan.desiredAnnualIncome.toFixed(2),
+            },
+          ]
         : []),
       { metric: "Contribution amount", value: plan.contributionAmount.toFixed(2) },
       { metric: "Contribution frequency", value: plan.contributionFrequency },
@@ -590,7 +596,7 @@ function App() {
               inflationLive={inflationLive}
               startYear={START_YEAR}
               annualReturn={annualReturn}
-              currentAnnualIncomeEstimate={realIncome}
+              onTrackIncome={{ today: realIncome, future: final.balance * SAFE_WITHDRAWAL_RATE }}
             />
           </aside>
 
@@ -632,7 +638,7 @@ function App() {
             </div>
 
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-              <Deferred show={detailStage >= 4} onApproach={showDetailStage[4]} skeleton="h-[704px] sm:h-[676px] xl:h-[694px]">
+              <Deferred show={detailStage >= 4} onApproach={showDetailStage[4]} skeleton="h-[704px] min-[389px]:h-[686px] min-[640px]:h-[694px] min-[664px]:h-[676px] xl:h-[694px]">
                 <CompareChart input={input} funds={compareFunds} highlightTicker={compareHighlight} dollars={dollars} />
               </Deferred>
               <Deferred show={detailStage >= 4} onApproach={showDetailStage[4]} skeleton="h-[414px] sm:h-[436px] xl:h-[694px]">
