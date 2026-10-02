@@ -1,5 +1,5 @@
 import { memo, useMemo } from "react";
-import { finalPoint, type ProjectionInput } from "../lib/projection";
+import { finalPoint, pickDollars, type Dollars, type ProjectionInput } from "../lib/projection";
 import { Card } from "./Card";
 import { DownloadCsvButton } from "./DownloadCsvButton";
 import { RankedBars } from "./RankedBars";
@@ -23,27 +23,32 @@ export const CompareChart = memo(function CompareChart({
   input,
   funds,
   highlightTicker,
+  dollars,
 }: {
   input: ProjectionInput;
   funds: CompareFund[];
   highlightTicker: string;
+  dollars: Dollars;
 }) {
   const rows = useMemo(
     () =>
       funds
         .map((fund) => ({
           ...fund,
-          balance: finalPoint(input, fund.avgReturn).balance,
+          // Every fund shares the plan's inflation path, so the dollars change the numbers, never the order.
+          balance: pickDollars(finalPoint(input, fund.avgReturn), dollars).balance,
           selected: fund.ticker === highlightTicker,
         }))
         .sort((a, b) => b.balance - a.balance),
-    [funds, input, highlightTicker],
+    [funds, input, highlightTicker, dollars],
   );
 
   return (
     <Card
       title="Compare funds"
-      subtitle="Your schedule and timeline, applied to each fund's historical average return."
+      subtitle={`Your schedule and timeline, applied to each fund's historical average return, in ${
+        dollars === "today" ? "today's" : "future"
+      } dollars.`}
       action={
         <DownloadCsvButton
           filename="etf-comparison.csv"
@@ -53,7 +58,7 @@ export const CompareChart = memo(function CompareChart({
               name: r.name,
               avgReturnPct: (r.avgReturn * 100).toFixed(1),
               expenseRatioPct: r.expenseRatio !== undefined ? (r.expenseRatio * 100).toFixed(2) : "",
-              projectedBalance: r.balance.toFixed(2),
+              [dollars === "today" ? "projectedBalanceTodaysDollars" : "projectedBalance"]: r.balance.toFixed(2),
             }))
           }
         />
@@ -71,8 +76,8 @@ export const CompareChart = memo(function CompareChart({
           display: formatBalance(r.balance),
           label: (
             <span className="flex items-baseline gap-2">
-              <span className="font-mono">{r.ticker === "MIX" ? "Your mix" : r.ticker}</span>
-              <span className="font-mono text-xs font-normal text-ink-3 tabular-nums">{(r.avgReturn * 100).toFixed(1)}%</span>
+              <span>{r.ticker === "MIX" ? "Your mix" : r.ticker}</span>
+              <span className="text-xs font-normal text-ink-3 tabular-nums">{(r.avgReturn * 100).toFixed(1)}%</span>
             </span>
           ),
         }))}

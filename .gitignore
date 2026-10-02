@@ -25,3 +25,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Fonts are fetched at build time (scripts/fetch-fonts.mjs). Their license forbids publishing the
+# files in a public repository, so they must never be committed.
+src/assets/fonts/

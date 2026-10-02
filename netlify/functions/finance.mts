@@ -3,18 +3,25 @@
  * trailing CAGR without hitting CORS (Yahoo doesn't send permissive CORS headers) or needing
  * an API key. This endpoint is undocumented and can change or rate-limit without notice — it's
  * fine for a personal/portfolio project, not something to depend on for production trading.
+ *
+ * Two things soften that: a request Yahoo rate-limits or fails on query1 is retried once on its
+ * twin host, query2, and Netlify's CDN keeps serving the last good response for up to an hour
+ * while it retries in the background. When every symbol still fails, the response is a 502 that
+ * nothing caches, and the app says it's showing built-in averages instead of live prices.
+ *
+ * Keep the plain, self-identifying User-Agent below. In testing, Yahoo answered it reliably but
+ * rate-limited requests that claimed to be a desktop browser.
  */
+import { allowedOrigin, jsonResponse } from "../lib/http.mts";
 
 const ALLOWED_RANGES = new Set(["1y", "2y", "5y", "10y", "max"]);
-
-/**
- * Origins allowed to call this proxy cross-origin. The Netlify deploy calls it same-origin and
- * sends no Origin header, so it never needs an entry here — this exists for the GitHub Pages
- * mirror, which is static-only and has no way to run a copy of the function itself.
- */
-const ALLOWED_ORIGINS = new Set(["https://amishpr.github.io"]);
+const YAHOO_HOSTS = ["query1.finance.yahoo.com", "query2.finance.yahoo.com"];
 const SYMBOL_PATTERN = /^[A-Z0-9.-]{1,10}$/;
-const MAX_SYMBOLS = 15;
+/** Room for every preset fund plus a handful of custom tickers. The client splits longer lists. */
+const MAX_SYMBOLS = 30;
+/** Yahoo rate-limits bursts. Nineteen chart requests fired at once drew 429s in testing, while
+ *  five at a time went through, and still finish in about a second. */
+const CONCURRENT_REQUESTS = 5;
 
 type RiskLabel = "Low" | "Medium" | "High" | "Very High";
 
@@ -31,12 +38,13 @@ interface QuoteResult {
   /** Annualized standard deviation of monthly returns over the fetched range. */
   volatility?: number;
   riskLabel?: RiskLabel;
+  /** When Yahoo last priced the quote (ISO). Outside market hours this is the last close. */
+  asOf?: string;
   error?: string;
 }
 
 export default async (req: Request) => {
-  const origin = req.headers.get("origin");
-  const allowOrigin = origin && ALLOWED_ORIGINS.has(origin) ? origin : undefined;
+  const allowOrigin = allowedOrigin(req);
 
   const url = new URL(req.url);
   const rawSymbols = url.searchParams.get("symbols") ?? "";
@@ -53,26 +61,62 @@ export default async (req: Request) => {
   ).slice(0, MAX_SYMBOLS);
 
   if (symbols.length === 0) {
-    return jsonResponse(
-      { error: "Provide at least one symbol via ?symbols=TICKER,TICKER" },
-      400,
-      allowOrigin,
-    );
+    return jsonResponse({ error: "Provide at least one symbol via ?symbols=TICKER,TICKER" }, { status: 400, allowOrigin });
   }
 
-  const results = await Promise.all(symbols.map((symbol) => fetchQuote(symbol, range)));
-  return jsonResponse({ results }, 200, allowOrigin);
+  const results = await mapWithLimit(symbols, CONCURRENT_REQUESTS, (symbol) => fetchQuote(symbol, range));
+  const fetchedAt = new Date().toISOString();
+  // A total failure means Yahoo itself is down or blocking us, not that the tickers are wrong.
+  // Answering with an error keeps the CDN from caching the outage over its last good response.
+  if (results.every((r) => !r.ok)) {
+    return jsonResponse(
+      { error: "Yahoo Finance didn't answer", results, fetchedAt, source: "Yahoo Finance" },
+      { status: 502, allowOrigin },
+    );
+  }
+  return jsonResponse(
+    { results, fetchedAt, source: "Yahoo Finance" },
+    { allowOrigin, maxAge: 300, staleWhileRevalidate: 3600 },
+  );
 };
+
+/** Like Promise.all over `items`, but with at most `limit` calls in flight at once. */
+async function mapWithLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
+/** One chart request, retried on the twin host when the first is rate-limited, errors, or times out. */
+async function fetchChart(symbol: string, range: string): Promise<Response> {
+  let last: Response | undefined;
+  for (const host of YAHOO_HOSTS) {
+    try {
+      last = await fetch(`https://${host}/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=1mo`, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; RetirementDashboard/1.0; +https://github.com)",
+        },
+        signal: AbortSignal.timeout(4000),
+      });
+      // A 404 is a real answer (unknown ticker); only rate limits and server errors are worth a retry.
+      if (last.status !== 429 && last.status < 500) return last;
+    } catch (err) {
+      if (host === YAHOO_HOSTS[YAHOO_HOSTS.length - 1]) throw err;
+    }
+  }
+  return last!;
+}
 
 async function fetchQuote(symbol: string, range: string): Promise<QuoteResult> {
   try {
-    const upstream = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=1mo`;
-    const res = await fetch(upstream, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; RetirementDashboard/1.0; +https://github.com)",
-      },
-      signal: AbortSignal.timeout(8000),
-    });
+    const res = await fetchChart(symbol, range);
 
     if (!res.ok) {
       return { symbol, ok: false, error: `Upstream returned ${res.status}` };
@@ -133,6 +177,7 @@ async function fetchQuote(symbol: string, range: string): Promise<QuoteResult> {
       years: years ? Math.round(years) : undefined,
       volatility,
       riskLabel,
+      asOf: typeof meta.regularMarketTime === "number" ? new Date(meta.regularMarketTime * 1000).toISOString() : undefined,
     };
   } catch (err) {
     return { symbol, ok: false, error: err instanceof Error ? err.message : "Fetch failed" };
@@ -159,19 +204,4 @@ function computeRisk(monthlyPrices: number[]): { volatility?: number; riskLabel?
   else riskLabel = "Very High";
 
   return { volatility, riskLabel };
-}
-
-function jsonResponse(body: unknown, status = 200, allowOrigin?: string): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "content-type": "application/json",
-      // Only successful lookups are worth caching; a cached 400 would keep failing after the fix.
-      "cache-control": status === 200 ? "public, max-age=300" : "no-store",
-      // The allow-origin header echoes the caller, so caches have to key on it or one origin's
-      // response could be replayed to another.
-      vary: "origin",
-      ...(allowOrigin ? { "access-control-allow-origin": allowOrigin } : {}),
-    },
-  });
 }

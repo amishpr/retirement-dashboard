@@ -11,7 +11,9 @@ export interface EtfOption {
   expenseRatio?: number;
   /** Static fallback risk category, used until live-computed volatility is available. */
   riskLabel?: RiskLabel;
-  /** Approximate long-run annualized volatility as a decimal, used as the risk chart's fallback axis value. */
+  /** Annualized volatility of monthly returns over the last 5 years (Yahoo Finance, 27 Sep 2026), the
+   *  same measure the live data computes. It stands in until live figures arrive, or when they can't,
+   *  and matching them keeps the risk chart still when the live figures land. */
   staticVolatility?: number;
   /** Average daily close over the 12 months to 25 Sep 2026 (Yahoo Finance), shown in place of the
    *  price when a live quote isn't available. Refresh these now and then so they don't drift. */
@@ -27,7 +29,7 @@ export const ETF_OPTIONS: EtfOption[] = [
     category: "US Broad Market",
     expenseRatio: 0.0003,
     riskLabel: "Medium",
-    staticVolatility: 0.155,
+    staticVolatility: 0.154,
     avgPrice: 652.12,
   },
   {
@@ -38,7 +40,7 @@ export const ETF_OPTIONS: EtfOption[] = [
     category: "US Broad Market",
     expenseRatio: 0.000945,
     riskLabel: "Medium",
-    staticVolatility: 0.155,
+    staticVolatility: 0.154,
     avgPrice: 709.16,
   },
   {
@@ -49,8 +51,19 @@ export const ETF_OPTIONS: EtfOption[] = [
     category: "US Broad Market",
     expenseRatio: 0.0003,
     riskLabel: "Medium",
-    staticVolatility: 0.16,
+    staticVolatility: 0.157,
     avgPrice: 349.68,
+  },
+  {
+    ticker: "SCHB",
+    name: "Schwab U.S. Broad Market ETF",
+    description: "The 2,500 largest US companies, for a very low fee",
+    avgReturn: 0.103,
+    category: "US Broad Market",
+    expenseRatio: 0.0003,
+    riskLabel: "Medium",
+    staticVolatility: 0.158,
+    avgPrice: 27.36,
   },
   {
     ticker: "VT",
@@ -58,9 +71,9 @@ export const ETF_OPTIONS: EtfOption[] = [
     description: "Every major stock market, US + international",
     avgReturn: 0.085,
     category: "Global",
-    expenseRatio: 0.0007,
+    expenseRatio: 0.0006,
     riskLabel: "Medium",
-    staticVolatility: 0.14,
+    staticVolatility: 0.148,
     avgPrice: 148.47,
   },
   {
@@ -71,8 +84,30 @@ export const ETF_OPTIONS: EtfOption[] = [
     category: "Global",
     expenseRatio: 0.0005,
     riskLabel: "Medium",
-    staticVolatility: 0.16,
+    staticVolatility: 0.151,
     avgPrice: 80.79,
+  },
+  {
+    ticker: "ACWI",
+    name: "iShares MSCI ACWI ETF",
+    description: "Large and mid-size companies in developed and emerging markets",
+    avgReturn: 0.08,
+    category: "Global",
+    expenseRatio: 0.0032,
+    riskLabel: "Medium",
+    staticVolatility: 0.147,
+    avgPrice: 148.66,
+  },
+  {
+    ticker: "URTH",
+    name: "iShares MSCI World ETF",
+    description: "Large and mid-size companies in 23 developed countries",
+    avgReturn: 0.09,
+    category: "Global",
+    expenseRatio: 0.0024,
+    riskLabel: "Medium",
+    staticVolatility: 0.149,
+    avgPrice: 193.54,
   },
   {
     ticker: "QQQ",
@@ -80,10 +115,76 @@ export const ETF_OPTIONS: EtfOption[] = [
     description: "Nasdaq-100, tech-heavy growth companies",
     avgReturn: 0.135,
     category: "Growth / Tech",
-    expenseRatio: 0.002,
+    expenseRatio: 0.0018,
     riskLabel: "Medium",
-    staticVolatility: 0.2,
+    staticVolatility: 0.207,
     avgPrice: 654.58,
+  },
+  {
+    ticker: "VUG",
+    name: "Vanguard Morningstar Growth ETF",
+    description: "Large US companies growing faster than the market",
+    avgReturn: 0.115,
+    category: "Growth / Tech",
+    expenseRatio: 0.0003,
+    riskLabel: "Medium",
+    staticVolatility: 0.201,
+    avgPrice: 82.56,
+  },
+  {
+    ticker: "SCHG",
+    name: "Schwab U.S. Large-Cap Growth ETF",
+    description: "Large US growth companies, for a very low fee",
+    avgReturn: 0.115,
+    category: "Growth / Tech",
+    expenseRatio: 0.0004,
+    riskLabel: "Medium",
+    staticVolatility: 0.196,
+    avgPrice: 32.92,
+  },
+  {
+    ticker: "MGK",
+    name: "Vanguard Morningstar Mega Cap Growth ETF",
+    description: "The very largest US growth companies",
+    avgReturn: 0.12,
+    category: "Growth / Tech",
+    expenseRatio: 0.0005,
+    riskLabel: "Medium",
+    staticVolatility: 0.206,
+    avgPrice: 83.69,
+  },
+  {
+    ticker: "IWF",
+    name: "iShares Russell 1000 Growth ETF",
+    description: "Growth stocks in the Russell 1000 index",
+    avgReturn: 0.115,
+    category: "Growth / Tech",
+    expenseRatio: 0.0018,
+    riskLabel: "Medium",
+    staticVolatility: 0.19,
+    avgPrice: 118.65,
+  },
+  {
+    ticker: "SPYG",
+    name: "SPDR Portfolio S&P 500 Growth ETF",
+    description: "The growth half of the S&P 500",
+    avgReturn: 0.11,
+    category: "Growth / Tech",
+    expenseRatio: 0.0004,
+    riskLabel: "Medium",
+    staticVolatility: 0.188,
+    avgPrice: 110.92,
+  },
+  {
+    ticker: "VGT",
+    name: "Vanguard Information Technology ETF",
+    description: "US technology companies, from chips to software",
+    avgReturn: 0.14,
+    category: "Growth / Tech",
+    expenseRatio: 0.0009,
+    riskLabel: "High",
+    staticVolatility: 0.232,
+    avgPrice: 103.52,
   },
   {
     ticker: "SCHD",
@@ -93,7 +194,7 @@ export const ETF_OPTIONS: EtfOption[] = [
     category: "Dividend",
     expenseRatio: 0.0006,
     riskLabel: "Medium",
-    staticVolatility: 0.148,
+    staticVolatility: 0.149,
     avgPrice: 30.67,
   },
   {
@@ -104,7 +205,7 @@ export const ETF_OPTIONS: EtfOption[] = [
     category: "Bonds",
     expenseRatio: 0.0003,
     riskLabel: "Low",
-    staticVolatility: 0.065,
+    staticVolatility: 0.064,
     avgPrice: 73.56,
   },
   {
@@ -126,12 +227,15 @@ export const ETF_OPTIONS: EtfOption[] = [
     category: "Low Volatility",
     expenseRatio: 0.0025,
     riskLabel: "Medium",
-    staticVolatility: 0.126,
+    staticVolatility: 0.128,
     avgPrice: 73.70,
   },
 ];
 
 export const DEFAULT_ETF_TICKER = "VT";
+
+/** The date the built-in `avgPrice` figures run to, shown when live prices can't be reached. */
+export const FALLBACK_PRICES_AS_OF = "Sep 25, 2026";
 
 /** Assumed annual return for a user-entered ticker we have no historical data for. */
 export const DEFAULT_CUSTOM_RETURN = 0.08;

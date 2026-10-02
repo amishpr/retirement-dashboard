@@ -1,5 +1,5 @@
 import { useEffect, useState, type RefObject } from "react";
-import { currencyFormatter } from "../lib/projection";
+import { currencyFormatter, type Dollars } from "../lib/projection";
 import { AnimatedNumber } from "./AnimatedNumber";
 
 /**
@@ -13,11 +13,13 @@ export function MobileBalanceBar({
   summaryRef,
   balance,
   targetAge,
+  dollars,
 }: {
   planRef: RefObject<HTMLElement | null>;
   summaryRef: RefObject<HTMLElement | null>;
   balance: number;
   targetAge: number;
+  dollars: Dollars;
 }) {
   const [planVisible, setPlanVisible] = useState(false);
   const [summaryVisible, setSummaryVisible] = useState(true);
@@ -48,8 +50,11 @@ export function MobileBalanceBar({
     >
       <div className="flex items-baseline justify-between gap-4">
         <span className="text-[13px] text-ink-3">Projected balance at {targetAge}</span>
-        <span className="text-lg font-semibold tracking-[-0.02em] text-ink">
-          <AnimatedNumber value={balance} formatter={(v) => currencyFormatter.format(v)} />
+        <span className="flex items-baseline gap-1.5">
+          <span className="text-lg font-semibold tracking-[-0.02em] text-ink">
+            <AnimatedNumber value={balance} formatter={(v) => currencyFormatter.format(v)} />
+          </span>
+          <span className="text-xs text-ink-3">{dollars === "today" ? "today's $" : "future $"}</span>
         </span>
       </div>
     </div>

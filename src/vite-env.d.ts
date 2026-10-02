@@ -7,6 +7,8 @@ interface ImportMetaEnv {
    * Netlify deploy and `netlify dev` use.
    */
   readonly VITE_FINANCE_ENDPOINT?: string;
+  /** The same, for the inflation proxy. */
+  readonly VITE_INFLATION_ENDPOINT?: string;
 }
 
 interface ImportMeta {

@@ -6,10 +6,10 @@
 #
 #   1. A base path. A Pages *project* site is served from https://<user>.github.io/<repo>/, so the
 #      asset URLs baked into the HTML have to carry that prefix.
-#   2. An absolute finance-proxy URL. Pages is static-only and can't run netlify/functions, so the
-#      live-quote lookups are pointed at the Netlify deploy's copy of the function, which
-#      allow-lists this origin for CORS. If that's ever unreachable the app just falls back to its
-#      built-in historical averages.
+#   2. Absolute proxy URLs. Pages is static-only and can't run netlify/functions, so the live-quote
+#      and inflation lookups are pointed at the Netlify deploy's copies of the functions, which
+#      allow-list this origin for CORS. If those are ever unreachable the app just falls back to its
+#      built-in averages and CPI history.
 name: Deploy to GitHub Pages
 
 on:
@@ -51,6 +51,7 @@ jobs:
           # Derived from the repo name so forks and renames keep working without an edit here.
           BASE_PATH: /${{ github.event.repository.name }}/
           VITE_FINANCE_ENDPOINT: https://amishpr-retirement-dashboard.netlify.app/.netlify/functions/finance
+          VITE_INFLATION_ENDPOINT: https://amishpr-retirement-dashboard.netlify.app/.netlify/functions/inflation
 
       - uses: actions/configure-pages@v5
 
