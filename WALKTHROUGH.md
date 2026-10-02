@@ -17,8 +17,8 @@ and geography.
 
 There is also a second mode built for a different way of thinking about retirement. Instead of
 starting from a contribution amount, the user enters the annual income they want in retirement,
-and the app works backward to tell them the contribution required to get there, using the
-common 4 percent safe withdrawal rule.
+and the app works backward to tell them the contribution required to get there, using a
+withdrawal rate the user can adjust, defaulting to the common 4 percent rule.
 
 The whole thing runs in the browser. There is no backend database and no user accounts. The
 only server side piece is a small function that fetches live market data when the app is
@@ -132,7 +132,7 @@ rough sense of how sensitive the outcome is to the return assumption.
 
 Goal mode required inverting the model above. Instead of simulating forward from a known
 contribution to find the ending balance, it needs to start from a target ending balance (the
-retirement income the user wants, divided by the 4 percent withdrawal rate) and solve for the
+retirement income the user wants, divided by the withdrawal rate) and solve for the
 contribution that gets there.
 
 The first version solved this with the future value of an annuity due formula, the standard
@@ -152,13 +152,13 @@ contributions and a changing inflation path, feeding its answer back into the fo
 lands within a dollar of the target.
 
 The target itself changed too. An income counted in today's dollars has to be scaled up to
-prices at retirement before the 4 percent rule turns it into a balance. The old goal math skipped
+prices at retirement before the withdrawal rate turns it into a balance. The old goal math skipped
 that step, so for a 30 year old asking for $40,000 a year of today's money it aimed for about
 $1.0 million when the honest target is about $2.5 million.
 
 Later the goal gained a choice of unit: today's dollars or future dollars, with future dollars as
 the default to match the rest of the page. A goal in future dollars is already what the first
-year of retirement pays, so it goes straight into the 4 percent rule. Switching the unit keeps
+year of retirement pays, so it goes straight into the withdrawal rate. Switching the unit keeps
 the number and changes what it means, so the contribution moves with it. Converting the number
 instead would have kept the plan still, but anyone who typed a figure and then noticed the unit
 would have to type it again, and every round trip through the price index would drift by a
