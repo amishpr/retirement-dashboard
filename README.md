@@ -49,7 +49,7 @@ data from FRED, through two small serverless functions.
 - Top ten holdings, sector weightings, and domestic versus international breakdowns, with
   automatic blending across a multi fund portfolio
 - A comparison of your plan against every preset fund
-- Estimated retirement income using the 4 percent safe withdrawal rule
+- Estimated retirement income using an adjustable safe withdrawal rate, 4 percent by default
 - The headline projection and its supporting figures count up to their new value when you
   change an input
 - CSV export on individual charts, a full multi sheet Excel workbook, and a one click PDF export
@@ -423,8 +423,8 @@ model to US inflation since 1950.
 
 Goal mode runs the same model in reverse. The income you want can be counted in future dollars,
 which is already what the first year of retirement pays, or in today's dollars, which are first
-scaled up to prices at retirement. Either way it's then turned into a target balance with the 4
-percent safe withdrawal rule. The ending balance is linear in the contribution: it's what the starting
+scaled up to prices at retirement. Either way it's then turned into a target balance with the plan's withdrawal rate, 4 percent
+by default and adjustable in the plan panel. The ending balance is linear in the contribution: it's what the starting
 amount grows to, plus the contribution times what one dollar a month grows to. So two runs of the
 same simulation give the exact contribution, even when contributions rise with inflation and the
 inflation rate changes from year to year, which the closed form annuity formula used before

@@ -87,6 +87,15 @@ test("an income goal in either dollars aims for the same balance when it means t
   assert.deepEqual(incomeGoal(40_000, "future", 1), incomeGoal(40_000, "today", 1));
 });
 
+test("a custom withdrawal rate changes the target balance but not the income figures", () => {
+  const goal = incomeGoal(40_000, "future", 1, 0.05);
+  assert.equal(goal.future, 40_000);
+  assert.equal(goal.today, 40_000);
+  assert.equal(goal.targetBalance, 800_000);
+  // Defaults to the 4% rule when omitted.
+  assert.equal(incomeGoal(40_000, "future", 1).targetBalance, 1_000_000);
+});
+
 test("a future-dollar goal seeded from the plan's own income asks for the plan's own contribution", () => {
   const inflation = Array(35).fill(0.03);
   const last = finalPoint({ ...plan, inflation });
