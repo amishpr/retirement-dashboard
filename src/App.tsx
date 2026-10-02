@@ -21,7 +21,6 @@ import {
   finalPoint,
   pickDollars,
   projectGrowth,
-  SAFE_WITHDRAWAL_RATE,
   type Dollars,
   type ProjectionInput,
   type YearPoint,
@@ -60,6 +59,7 @@ const initialControls: Controls = {
   planningMode: "contribution",
   desiredAnnualIncome: 40000,
   goalDollars: "future",
+  withdrawalRate: 0.04,
   inflationMode: "forecast",
   customInflation: 0.03,
   raiseContributions: false,
@@ -374,8 +374,8 @@ function App() {
   const totalContributed = shown.contributions;
   const totalGrowth = shown.growth;
   const multiple = totalContributed > 0 ? shown.balance / totalContributed : 0;
-  const annualIncome = shown.balance * SAFE_WITHDRAWAL_RATE;
-  const realIncome = final.realBalance * SAFE_WITHDRAWAL_RATE;
+  const annualIncome = shown.balance * plan.withdrawalRate;
+  const realIncome = final.realBalance * plan.withdrawalRate;
   const annualRealReturn = realReturn(annualReturn, inflationPath.average);
   const retirementYear = START_YEAR + Math.max(0, years);
 
@@ -399,6 +399,7 @@ function App() {
         : []),
       { metric: "Contribution amount", value: plan.contributionAmount.toFixed(2) },
       { metric: "Contribution frequency", value: plan.contributionFrequency },
+      { metric: "Withdrawal rate (%)", value: (plan.withdrawalRate * 100).toFixed(1) },
       { metric: "Assumed avg. annual return (%)", value: (annualReturn * 100).toFixed(2) },
       {
         metric: "Inflation assumption",
@@ -418,15 +419,15 @@ function App() {
       { metric: "Growth after inflation (today's dollars)", value: final.realGrowth.toFixed(2) },
       { metric: "Growth multiple", value: (final.contributions > 0 ? final.balance / final.contributions : 0).toFixed(2) },
       {
-        metric: `Estimated annual retirement income (${(SAFE_WITHDRAWAL_RATE * 100).toFixed(0)}% rule, ${retirementYear} dollars)`,
-        value: (final.balance * SAFE_WITHDRAWAL_RATE).toFixed(2),
+        metric: `Estimated annual retirement income (${(plan.withdrawalRate * 100).toFixed(1)}% withdrawal rate, ${retirementYear} dollars)`,
+        value: (final.balance * plan.withdrawalRate).toFixed(2),
       },
       {
-        metric: `Estimated annual retirement income (${(SAFE_WITHDRAWAL_RATE * 100).toFixed(0)}% rule, today's dollars)`,
+        metric: `Estimated annual retirement income (${(plan.withdrawalRate * 100).toFixed(1)}% withdrawal rate, today's dollars)`,
         value: realIncome.toFixed(2),
       },
       {
-        metric: `Estimated monthly retirement income (${(SAFE_WITHDRAWAL_RATE * 100).toFixed(0)}% rule, today's dollars)`,
+        metric: `Estimated monthly retirement income (${(plan.withdrawalRate * 100).toFixed(1)}% withdrawal rate, today's dollars)`,
         value: (realIncome / 12).toFixed(2),
       },
       { metric: "Expense ratio (%)", value: fundOverviewData.expenseRatio !== undefined ? (fundOverviewData.expenseRatio * 100).toFixed(2) : "" },
@@ -571,7 +572,7 @@ function App() {
               growth={totalGrowth}
               multiple={multiple}
               annualIncome={annualIncome}
-              withdrawalRate={SAFE_WITHDRAWAL_RATE}
+              withdrawalRate={plan.withdrawalRate}
               targetAge={plan.targetAge}
               years={years}
               planLabel={planLabel}
@@ -596,7 +597,7 @@ function App() {
               inflationLive={inflationLive}
               startYear={START_YEAR}
               annualReturn={annualReturn}
-              onTrackIncome={{ today: realIncome, future: final.balance * SAFE_WITHDRAWAL_RATE }}
+              onTrackIncome={{ today: realIncome, future: final.balance * plan.withdrawalRate }}
             />
           </aside>
 

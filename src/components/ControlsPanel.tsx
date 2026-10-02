@@ -11,7 +11,6 @@ import {
   DOLLAR_OPTIONS,
   fromMonthlyContribution,
   incomeGoal,
-  SAFE_WITHDRAWAL_RATE,
   type ContributionFrequency,
   type Dollars,
 } from "../lib/projection";
@@ -36,6 +35,8 @@ export interface Controls {
   desiredAnnualIncome: number;
   /** Whether the income goal is counted in today's dollars or the retirement year's. */
   goalDollars: Dollars;
+  /** The yearly share of the balance you plan to withdraw in retirement, as a decimal. */
+  withdrawalRate: number;
   inflationMode: InflationMode;
   /** The flat yearly rate for the custom inflation mode, as a decimal. */
   customInflation: number;
@@ -614,6 +615,7 @@ export function ControlsPanel({
     contribution: useId(),
     income: useId(),
     customReturn: useId(),
+    withdrawalRate: useId(),
     customInflation: useId(),
     raise: useId(),
   };
@@ -634,11 +636,11 @@ export function ControlsPanel({
 
   // Goal mode solves backward for the contribution. The income you want is in today's dollars or
   // the retirement year's, so it's first put in the retirement year's prices, turned into a balance
-  // with the 4% rule, and then the same simulation the charts use finds the contribution that
-  // reaches it. `contributionAmount` stays in sync, so the rest of the app reflects the goal-based
-  // plan without knowing about it.
+  // with the withdrawal rate, and then the same simulation the charts use finds the contribution
+  // that reaches it. `contributionAmount` stays in sync, so the rest of the app reflects the
+  // goal-based plan without knowing about it.
   const retirementYear = startYear + goalYears;
-  const goal = incomeGoal(controls.desiredAnnualIncome, controls.goalDollars, retirementPrices);
+  const goal = incomeGoal(controls.desiredAnnualIncome, controls.goalDollars, retirementPrices, controls.withdrawalRate);
   const requiredMonthly =
     controls.planningMode === "goal"
       ? computeRequiredMonthlyContribution(goal.targetBalance, {
@@ -923,6 +925,29 @@ export function ControlsPanel({
         <Group title="Money in">
           <Segmented label="Plan by" options={PLANNING_MODES} value={controls.planningMode} onChange={setPlanningMode} />
 
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-baseline justify-between">
+              <label
+                htmlFor={ids.withdrawalRate}
+                className={fieldLabel}
+                title="How much of your balance you plan to withdraw each year in retirement"
+              >
+                Withdrawal rate
+              </label>
+              <span className="text-[13px] font-medium text-ink tabular-nums">{pct1(controls.withdrawalRate)}</span>
+            </div>
+            <input
+              id={ids.withdrawalRate}
+              type="range"
+              min={2}
+              max={8}
+              step={0.1}
+              value={controls.withdrawalRate * 100}
+              onChange={(e) => update("withdrawalRate", Number(e.target.value) / 100)}
+              className="w-full"
+            />
+          </div>
+
           {/* Side by side, so the panel fits a desktop window without scrolling. */}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex min-w-0 flex-col gap-1.5">
@@ -1001,7 +1026,7 @@ export function ControlsPanel({
                     {controls.goalDollars === "today"
                       ? `${currencyFormatter.format(goal.today)} today is about ${currencyFormatter.format(goal.future)} a year in ${retirementYear} prices.`
                       : `${currencyFormatter.format(goal.future)} a year in ${retirementYear} is about ${currencyFormatter.format(goal.today)} in today's dollars.`}{" "}
-                    At a {(SAFE_WITHDRAWAL_RATE * 100).toFixed(0)}% withdrawal rate, that takes about{" "}
+                    At a {pct1(controls.withdrawalRate)} withdrawal rate, that takes about{" "}
                     {currencyFormatter.format(goal.targetBalance)} saved by {controls.targetAge}.
                   </p>
                 </>

@@ -115,7 +115,7 @@ export const SummaryHero = memo(function SummaryHero({
           <Figure label="Income a year" value={annualIncome} formatter={formatMoney} />
           <Figure label="A month" value={annualIncome / 12} formatter={formatMoney} />
           <p className="col-span-2 mt-1 text-xs text-ink-3">
-            Withdrawing {Math.round(withdrawalRate * 100)}% a year, {today ? "in today's dollars" : `in ${retirementYear} dollars`}
+            Withdrawing {rate(withdrawalRate)} a year, {today ? "in today's dollars" : `in ${retirementYear} dollars`}
           </p>
         </dl>
       </div>

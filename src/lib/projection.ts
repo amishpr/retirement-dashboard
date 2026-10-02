@@ -89,10 +89,11 @@ export function incomeGoal(
   amount: number,
   dollars: Dollars,
   retirementPrices: number,
+  withdrawalRate: number = SAFE_WITHDRAWAL_RATE,
 ): { future: number; today: number; targetBalance: number } {
   const future = dollars === "future" ? amount : amount * retirementPrices;
   const today = dollars === "today" ? amount : amount / retirementPrices;
-  return { future, today, targetBalance: future / SAFE_WITHDRAWAL_RATE };
+  return { future, today, targetBalance: future / withdrawalRate };
 }
 
 /**
