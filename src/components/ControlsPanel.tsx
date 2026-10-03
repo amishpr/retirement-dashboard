@@ -186,11 +186,14 @@ function MoneyInput({
   );
 }
 
-function AgeStepper({
+function NumberStepper({
   label,
   value,
   min,
   max,
+  decimals = 0,
+  suffix,
+  className = "",
   onChange,
   onDecrement,
   onIncrement,
@@ -199,31 +202,54 @@ function AgeStepper({
   value: number;
   min: number;
   max: number;
+  /** Decimal places the field accepts and displays, e.g. 1 for "4.5". Whole numbers by default. */
+  decimals?: number;
+  /** A short unit shown after the number, e.g. "%". */
+  suffix?: string;
+  className?: string;
   onChange: (value: number) => void;
   onDecrement: () => void;
   onIncrement: () => void;
 }) {
   const id = useId();
-  const [text, setText] = useState(String(value));
+  const format = (n: number) => n.toFixed(decimals);
+  const [text, setText] = useState(format(value));
   const [prevValue, setPrevValue] = useState(value);
   if (value !== prevValue) {
     setPrevValue(value);
-    setText(String(value));
+    setText(format(value));
   }
+
+  const round = (num: number) => {
+    const factor = 10 ** decimals;
+    return Math.round(num * factor) / factor;
+  };
 
   const commitText = () => {
     const num = Number(text);
     if (text.trim() === "" || Number.isNaN(num)) {
-      setText(String(value));
+      setText(format(value));
       return;
     }
-    onChange(Math.max(min, Math.min(max, Math.round(num))));
+    onChange(round(Math.max(min, Math.min(max, num))));
+  };
+
+  // Typing a number outside the range corrects itself right away rather than waiting for blur,
+  // so the field never shows an invalid value for long. A number still inside range is left as
+  // typed, decimals and all, until commitText rounds it on blur.
+  const handleTextChange = (raw: string) => {
+    setText(raw);
+    const num = Number(raw);
+    if (raw.trim() === "" || Number.isNaN(num) || (num >= min && num <= max)) return;
+    const clamped = round(Math.max(min, Math.min(max, num)));
+    setText(format(clamped));
+    onChange(clamped);
   };
 
   const stepButton = "flex h-full w-9 shrink-0 items-center justify-center text-ink-2 hover:bg-ink/[0.05] hover:text-ink disabled:opacity-35";
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className={`flex flex-col gap-1.5 ${className}`}>
       <label htmlFor={id} className={fieldLabel}>
         {label}
       </label>
@@ -240,9 +266,9 @@ function AgeStepper({
         <input
           id={id}
           type="number"
-          inputMode="numeric"
+          inputMode={decimals > 0 ? "decimal" : "numeric"}
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => handleTextChange(e.target.value)}
           onBlur={commitText}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -253,6 +279,11 @@ function AgeStepper({
           }}
           className="no-spinner w-full min-w-0 bg-transparent text-center text-sm font-semibold text-ink tabular-nums outline-none"
         />
+        {suffix && (
+          <span aria-hidden="true" className="flex items-center pr-1 text-sm text-ink-3">
+            {suffix}
+          </span>
+        )}
         <button
           type="button"
           onClick={onIncrement}
@@ -615,7 +646,6 @@ export function ControlsPanel({
     contribution: useId(),
     income: useId(),
     customReturn: useId(),
-    withdrawalRate: useId(),
     customInflation: useId(),
     raise: useId(),
   };
@@ -901,7 +931,7 @@ export function ControlsPanel({
 
         <Group title="Timeline">
           <div className="grid grid-cols-2 gap-3">
-            <AgeStepper
+            <NumberStepper
               label="Current age"
               value={controls.currentAge}
               min={1}
@@ -910,7 +940,7 @@ export function ControlsPanel({
               onDecrement={() => update("currentAge", Math.max(1, controls.currentAge - 1))}
               onIncrement={() => update("currentAge", Math.min(controls.targetAge - 1, controls.currentAge + 1))}
             />
-            <AgeStepper
+            <NumberStepper
               label="Retire at"
               value={controls.targetAge}
               min={2}
@@ -925,28 +955,18 @@ export function ControlsPanel({
         <Group title="Money in">
           <Segmented label="Plan by" options={PLANNING_MODES} value={controls.planningMode} onChange={setPlanningMode} />
 
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-baseline justify-between">
-              <label
-                htmlFor={ids.withdrawalRate}
-                className={fieldLabel}
-                title="How much of your balance you plan to withdraw each year in retirement"
-              >
-                Withdrawal rate
-              </label>
-              <span className="text-[13px] font-medium text-ink tabular-nums">{pct1(controls.withdrawalRate)}</span>
-            </div>
-            <input
-              id={ids.withdrawalRate}
-              type="range"
-              min={2}
-              max={8}
-              step={0.1}
-              value={controls.withdrawalRate * 100}
-              onChange={(e) => update("withdrawalRate", Number(e.target.value) / 100)}
-              className="w-full"
-            />
-          </div>
+          <NumberStepper
+            label="Withdrawal rate"
+            value={controls.withdrawalRate * 100}
+            min={1}
+            max={100}
+            decimals={1}
+            suffix="%"
+            className="w-36 self-start"
+            onChange={(pct) => update("withdrawalRate", pct / 100)}
+            onDecrement={() => update("withdrawalRate", Math.max(1, Math.round((controls.withdrawalRate * 100 - 1) * 10) / 10) / 100)}
+            onIncrement={() => update("withdrawalRate", Math.min(100, Math.round((controls.withdrawalRate * 100 + 1) * 10) / 10) / 100)}
+          />
 
           {/* Side by side, so the panel fits a desktop window without scrolling. */}
           <div className="grid grid-cols-2 gap-3">
